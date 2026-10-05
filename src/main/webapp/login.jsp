@@ -3,7 +3,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>123Digital - Login</title>
+    <title>CREINFOR - Login</title>
     <style>
         /* Estilos consistentes con la página principal */
         * {
