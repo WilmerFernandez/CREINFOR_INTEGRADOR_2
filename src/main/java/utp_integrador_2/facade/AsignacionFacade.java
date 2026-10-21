@@ -3,6 +3,8 @@ package utp_integrador_2.facade;
 import utp_integrador_2.DAO.AsignacionDAO;
 import utp_integrador_2.DTO.AsignacionDTO;
 import utp_integrador_2_model.Asignacion;
+import java.util.List;
+import utp_integrador_2_model.Solicitud;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -21,6 +23,13 @@ public class AsignacionFacade {
                 .esCoordinador(dto.isEsCoordinador())
                 .build();
 
-        asignacionDAO.insert(asignacion);
+        asignacionDAO.gestionarAsignacion(asignacion);
     }
+    
+    public List<Solicitud> listarSolicitudesDisponibles()
+        throws SQLException {
+
+    return asignacionDAO.listarSolicitudesPendientes();
+}
+    
 }

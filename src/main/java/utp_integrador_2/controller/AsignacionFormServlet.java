@@ -8,9 +8,9 @@ import java.sql.Connection;
 import java.util.List;
 import utp_integrador_2.DAO.BDConnection;
 import utp_integrador_2.facade.ColaboradorFacade;
-import utp_integrador_2.facade.SolicitudFacade;
 import utp_integrador_2_model.Colaborador;
 import utp_integrador_2_model.Solicitud;
+import utp_integrador_2.facade.AsignacionFacade;
 
 @WebServlet("/asignacionForm")
 public class AsignacionFormServlet extends HttpServlet {
@@ -18,13 +18,13 @@ public class AsignacionFormServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         try (Connection connection = BDConnection.getConnection()) {
-            SolicitudFacade solicitudFacade = new SolicitudFacade(connection);
+            AsignacionFacade asignacionFacade = new AsignacionFacade(connection);
             ColaboradorFacade colaboradorFacade = new ColaboradorFacade(connection);
 
-            List<Solicitud> solicitudesPendientes = solicitudFacade.listarSolicitudesPendientes();
+            List<Solicitud> solicitudesPendientes =asignacionFacade.listarSolicitudesDisponibles();
             List<Colaborador> colaboradores = colaboradorFacade.listarTodos();
 
-            System.out.println("Solicitudes Pendientes: " + solicitudesPendientes.size());
+            System.out.println("Solicitudes disponibles: " + solicitudesPendientes.size());
             System.out.println("Colaboradores: " + colaboradores.size());
 
             request.setAttribute("solicitudesPendientes", solicitudesPendientes);
