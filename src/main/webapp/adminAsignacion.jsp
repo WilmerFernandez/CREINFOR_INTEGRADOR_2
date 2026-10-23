@@ -255,6 +255,36 @@
                     padding:20px;
                 }
             }
+
+
+            .tabla-asignaciones {
+                width: 100%;
+                border-collapse: collapse;
+                font-size: 13px;
+            }
+            .tabla-asignaciones th,
+            .tabla-asignaciones td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid #e2eaf1;
+            }
+            .tabla-asignaciones th {
+                background: #f3f7fb;
+                color: #173b5b;
+            }
+            .etiqueta {
+                display: inline-block;
+                padding: 5px 9px;
+                border-radius: 15px;
+                background: #e3f2fd;
+                color: #1565c0;
+                font-size: 12px;
+                font-weight: 600;
+            }
+            .etiqueta.coordinador {
+                background: #e8f5e9;
+                color: #2e7d32;
+            }
         </style>
     </head>
     <body>
@@ -297,27 +327,96 @@
                             <div class="field"><label for="idColaborador">Colaborador responsable</label>
                                 <select name="idColaborador" id="idColaborador" required><option value="">Selecciona un colaborador</option>
                                     <c:forEach var="col" items="${colaboradores}"><option value="${col.idColaborador}"><c:out value="${col.nombres}" /> <c:out value="${col.apellidos}" /> (<c:out value="${col.rol}" />)</option></c:forEach>
-                                </select><p class="hint">Selecciona a quien se le asignará esta solicitud.</p>
+                                    </select><p class="hint">Selecciona a quien se le asignará esta solicitud.</p>
+                                </div>
+                                <div class="field"><label for="esCoordinador">¿Será coordinador de esta asignación?</label>
+                                    <select name="esCoordinador" id="esCoordinador" required><option value="false" selected>No</option><option value="true">Sí</option></select>
+                                    <p class="hint">Indica si el colaborador tendrá el rol de coordinador en esta asignación.</p>
+                                </div>
+                                <button type="submit" class="primary">✓ Asignar solicitud</button>
+                            </form>
+                        </div>
+                    </section>
+                    <aside>
+                        <div class="card"><div class="card-head"><div class="icon">⚙️</div><div><h2>¿Cómo funciona?</h2><p class="small">Tres pasos para asignar correctamente.</p></div></div>
+                            <div class="content">
+                                <div class="step"><div class="number">1</div><div><b>Elige la solicitud</b><p>Selecciona el caso que requiere atención técnica.</p></div></div>
+                                <div class="step"><div class="number">2</div><div><b>Designa al colaborador</b><p>Selecciona al integrante del equipo responsable.</p></div></div>
+                                <div class="step"><div class="number">3</div><div><b>Confirma la asignación</b><p>El sistema enviará los datos al controlador de asignaciones.</p></div></div>
                             </div>
-                            <div class="field"><label for="esCoordinador">¿Será coordinador de esta asignación?</label>
-                                <select name="esCoordinador" id="esCoordinador" required><option value="false" selected>No</option><option value="true">Sí</option></select>
-                                <p class="hint">Indica si el colaborador tendrá el rol de coordinador en esta asignación.</p>
-                            </div>
-                            <button type="submit" class="primary">✓ Asignar solicitud</button>
-                        </form>
-                    </div>
-                </section>
-                <aside>
-                    <div class="card"><div class="card-head"><div class="icon">⚙️</div><div><h2>¿Cómo funciona?</h2><p class="small">Tres pasos para asignar correctamente.</p></div></div>
-                        <div class="content">
-                            <div class="step"><div class="number">1</div><div><b>Elige la solicitud</b><p>Selecciona el caso que requiere atención técnica.</p></div></div>
-                            <div class="step"><div class="number">2</div><div><b>Designa al colaborador</b><p>Selecciona al integrante del equipo responsable.</p></div></div>
-                            <div class="step"><div class="number">3</div><div><b>Confirma la asignación</b><p>El sistema enviará los datos al controlador de asignaciones.</p></div></div>
+                        </div>
+                        <div class="note"><h3>💡 Recomendación</h3><p>Revisa el tipo y motivo de la solicitud antes de asignarla. Así podrás elegir al colaborador más adecuado.</p></div>
+                    </aside>
+                </div>
+
+
+
+                <section class="card" style="margin-top:25px;">
+
+                    <div class="card-head">
+                        <div class="icon">👥</div>
+                        <div>
+                            <h2>Asignaciones existentes</h2>
+                            <p class="small">
+                                Consulta los colaboradores y coordinadores de cada solicitud.
+                            </p>
                         </div>
                     </div>
-                    <div class="note"><h3>💡 Recomendación</h3><p>Revisa el tipo y motivo de la solicitud antes de asignarla. Así podrás elegir al colaborador más adecuado.</p></div>
-                </aside>
-            </div>
+
+                    <div class="content" style="overflow-x:auto;">
+
+                        <table class="tabla-asignaciones">
+                            <thead>
+                                <tr>
+                                    <th>Solicitud</th>
+                                    <th>Colaborador</th>
+                                    <th>Especialidad</th>
+                                    <th>Responsabilidad</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                            <c:forEach var="a" items="${asignaciones}">
+                                <tr>
+                                    <td>#<c:out value="${a.idSolicitud}"/></td>
+                                    <td>
+                                        <c:out value="${a.nombres}"/>
+                                        <c:out value="${a.apellidos}"/>
+                                    </td>
+                                    <td><c:out value="${a.rol}"/></td>
+                                    <td>
+                                        <c:choose>
+                                            <c:when test="${a.esCoordinador}">
+                                                <span class="etiqueta coordinador">
+                                                    ✓ Coordinador
+                                                </span>
+                                            </c:when>
+                                            <c:otherwise>
+                                                <span class="etiqueta">
+                                                    Colaborador
+                                                </span>
+                                            </c:otherwise>
+                                        </c:choose>
+                                    </td>
+                                    <td><c:out value="${a.estado}"/></td>
+                                </tr>
+                            </c:forEach>
+
+                            <c:if test="${empty asignaciones}">
+                                <tr>
+                                    <td colspan="5" style="text-align:center;">
+                                        No existen asignaciones registradas.
+                                    </td>
+                                </tr>
+                            </c:if>
+                        </tbody>
+                    </table>
+
+                </div>
+            </section>                      
+
+
         </main>
         <footer>© 2026 CREINFOR S.A.C. · Sistema de gestión de soporte técnico</footer>
         <script>

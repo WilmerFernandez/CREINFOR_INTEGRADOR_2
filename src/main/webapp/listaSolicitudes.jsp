@@ -4,9 +4,10 @@
 <%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt" %>
 <%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
 <!DOCTYPE html>
-<html>
+<html lang="es">
     <head>
         <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Lista de Solicitudes - Panel de Administración</title>
         <!-- Incluimos Bootstrap para un diseño más profesional -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -14,6 +15,8 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
         <style>
             :root {
+                --verde: #164b3a;
+                --verde-oscuro: #103e30;
                 --color-pendiente: #fff3cd;
                 --color-proceso: #cce5ff;
                 --color-finalizada: #d4edda;
@@ -125,13 +128,80 @@
                 font-size: 0.9rem;
                 color: #6c757d;
             }
+
+            /* Diseño CREINFOR - franja superior verde oscuro */
+            body { background:#eef3f3; color:#213a37; }
+            .topbar { background:var(--verde); color:#fff; }
+            .topbar-inner { max-width:1120px; margin:auto; min-height:89px;
+                display:flex; align-items:center; justify-content:space-between;
+                gap:20px; padding:18px 24px; }
+            .topbar-brand { font-weight:800; font-size:25px; letter-spacing:.5px; }
+            .topbar-subtitle { font-size:12px; opacity:.87; }
+            .topbar-back { color:#fff; border:1px solid #ffffff70; border-radius:8px;
+                padding:10px 14px; text-decoration:none; white-space:nowrap; font-size:13px; }
+            .topbar-back:hover { background:#ffffff1b; color:#fff; }
+            .container-main { max-width:1120px; margin:28px auto; background:transparent;
+                border-radius:0; box-shadow:none; padding:0 20px; }
+            .page-heading { display:flex; justify-content:space-between; align-items:center;
+                gap:12px; margin-bottom:18px; }
+            .page-title { border:0; margin:0; padding:0; font-size:24px;
+                font-weight:750; color:#193f35; }
+            .page-title i { color:#247557; margin-right:7px; }
+            .page-subtitle { color:#6a8580; font-size:13px; margin:6px 0 0; }
+            .heading-indicator { color:#36765d; background:#dbebe3; border-radius:30px;
+                padding:8px 12px; font-size:12px; font-weight:600; white-space:nowrap; }
+            .search-card, .table-responsive { background:#fff; border:1px solid #e2ece7;
+                border-radius:13px; box-shadow:0 7px 22px #163f3012; }
+            .search-card { padding:22px; margin-bottom:20px; }
+            .form-label { color:#25463b; font-size:13px; font-weight:650; }
+            .form-control { border-color:#cdded6; border-radius:8px; }
+            .form-control:focus { border-color:#29835d; box-shadow:0 0 0 .2rem #228a5930; }
+            .btn-primary { background:#217553; border-color:#217553; }
+            .btn-primary:hover { background:var(--verde-oscuro); border-color:var(--verde-oscuro); }
+            .section-title { font-size:16px; font-weight:750; margin:22px 0 12px;
+                color:#234c3c; }
+            .section-title i { margin-right:7px; }
+            .table-responsive { padding:12px; }
+            .table-custom { margin-bottom:0; width:100%; }
+            .table-custom thead th { position:static; background:#eaf2ee; color:#28503e;
+                font-size:12px; border-bottom:1px solid #dce8e1; padding:12px 10px; white-space:nowrap; }
+            .table-custom tbody td { font-size:13px; padding:14px 10px;
+                border-color:#edf2ef; vertical-align:middle; }
+            .table-custom tbody tr:hover td { background:#f4faf6; }
+            .btn-view { background:#257d63; }
+            .btn-view:hover { background:#155440; }
+            .pagination .page-link { color:#226b4f; }
+            .pagination .active .page-link { background:#217553; border-color:#217553; color:white; }
+            .badge-estado { display:inline-block; font-size:12px; font-weight:650; }
+            .badge-en-proceso { background:var(--color-proceso); color:#004085; }
+            .no-records { background:#fff; border-radius:12px; }
+            @media(max-width:700px) {
+                .topbar-inner { align-items:flex-start; flex-direction:column; }
+                .page-heading { align-items:flex-start; flex-direction:column; }
+                .heading-indicator { display:none; }
+            }
         </style>
     </head>
     <body>
+        <header class="topbar">
+            <div class="topbar-inner">
+                <div>
+                    <div class="topbar-brand">CREINFOR</div>
+                    <div class="topbar-subtitle">Sistema de Gestión de Soporte Técnico · Administración de solicitudes</div>
+                </div>
+                <a class="topbar-back" href="${pageContext.request.contextPath}/adminDashboard">
+                    <i class="bi bi-arrow-left"></i> Volver al panel
+                </a>
+            </div>
+        </header>
         <div class="container container-main">
-            <h1 class="page-title">
-                <i class="bi bi-list-check"></i> Gestión de Solicitudes
-            </h1>
+            <div class="page-heading">
+                <div>
+                    <h1 class="page-title"><i class="bi bi-list-check"></i> Gestión de Solicitudes</h1>
+                    <p class="page-subtitle">Consulta y supervisa las solicitudes de soporte técnico.</p>
+                </div>
+                <div class="heading-indicator"><i class="bi bi-clipboard-data"></i> Panel administrativo</div>
+            </div>
 
             <%-- Mostrar mensajes de error o éxito --%>
             <c:if test="${not empty errorMessage}">
@@ -154,13 +224,13 @@
                     <div class="col-md-4">
                         <label for="tipo_solicitud" class="form-label">Tipo</label>
                         <input type="text" class="form-control" id="tipo_solicitud" name="tipo_solicitud" 
-                               value="${param.motivo}" placeholder="Buscar por tipo">
+                               value="${fn:escapeXml(param.tipo_solicitud)}" placeholder="Buscar por tipo">
                     </div>
 
                     <div class="col-md-3">
                         <label for="colaborador" class="form-label">Colaborador</label>
                         <input type="text" class="form-control" id="colaborador" name="colaborador" 
-                               value="${param.colaborador}" placeholder="Nombre o apellido">
+                               value="${fn:escapeXml(param.colaborador)}" placeholder="Nombre o apellido">
 
 
 
@@ -169,7 +239,7 @@
                     <div class="col-md-3">
                         <label for="estado" class="form-label">Estado</label>
                         <input type="text" class="form-control" id="estado" name="estado" 
-                               value="${param.estado}" placeholder="estado">
+                               value="${fn:escapeXml(param.estado)}" placeholder="estado">
                     </div>
 
                     <div class="col-md-2 d-flex align-items-end">
@@ -183,6 +253,7 @@
                 </form>
             </div>
 
+            <div class="section-title"><i class="bi bi-table"></i> Solicitudes registradas</div>
             <%-- Lista de solicitudes --%>
             <c:choose>
                 <c:when test="${not empty solicitudes}">
@@ -272,29 +343,29 @@
                             <nav aria-label="Page navigation" class="float-end">
                                 <ul class="pagination pagination-sm">
                                     <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="?page=1&motivo=${param.motivo}&colaborador=${param.colaborador}&estado=${param.estado}">
+                                        <a class="page-link" href="?page=1&motivo=${param.motivo}&tipo_solicitud=${param.tipo_solicitud}&colaborador=${param.colaborador}&estado=${param.estado}">
                                             <i class="bi bi-chevron-double-left"></i>
                                         </a>
                                     </li>
                                     <li class="page-item ${currentPage == 1 ? 'disabled' : ''}">
-                                        <a class="page-link" href="?page=${currentPage - 1}&motivo=${param.motivo}&colaborador=${param.colaborador}&estado=${param.estado}">
+                                        <a class="page-link" href="?page=${currentPage - 1}&motivo=${param.motivo}&tipo_solicitud=${param.tipo_solicitud}&colaborador=${param.colaborador}&estado=${param.estado}">
                                             <i class="bi bi-chevron-left"></i>
                                         </a>
                                     </li>
 
                                     <c:forEach begin="1" end="${totalPages}" var="i">
                                         <li class="page-item ${currentPage == i ? 'active' : ''}">
-                                            <a class="page-link" href="?page=${i}&motivo=${param.motivo}&colaborador=${param.colaborador}&estado=${param.estado}">${i}</a>
+                                            <a class="page-link" href="?page=${i}&motivo=${param.motivo}&tipo_solicitud=${param.tipo_solicitud}&colaborador=${param.colaborador}&estado=${param.estado}">${i}</a>
                                         </li>
                                     </c:forEach>
 
                                     <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="?page=${currentPage + 1}&motivo=${param.motivo}&colaborador=${param.colaborador}&estado=${param.estado}">
+                                        <a class="page-link" href="?page=${currentPage + 1}&motivo=${param.motivo}&tipo_solicitud=${param.tipo_solicitud}&colaborador=${param.colaborador}&estado=${param.estado}">
                                             <i class="bi bi-chevron-right"></i>
                                         </a>
                                     </li>
                                     <li class="page-item ${currentPage == totalPages ? 'disabled' : ''}">
-                                        <a class="page-link" href="?page=${totalPages}&motivo=${param.motivo}&colaborador=${param.colaborador}&estado=${param.estado}">
+                                        <a class="page-link" href="?page=${totalPages}&motivo=${param.motivo}&tipo_solicitud=${param.tipo_solicitud}&colaborador=${param.colaborador}&estado=${param.estado}">
                                             <i class="bi bi-chevron-double-right"></i>
                                         </a>
                                     </li>
@@ -322,12 +393,7 @@
                     return new bootstrap.Tooltip(tooltipTriggerEl);
                 });
 
-                // Limpiar parámetros de búsqueda al hacer clic en el botón Limpiar
-                document.getElementById('btnLimpiar').addEventListener('click', function () {
-                    document.getElementById('motivo').value = '';
-                    document.getElementById('colaborador').value = '';
-                    document.getElementById('estado').value = '';
-                });
+                // El enlace Limpiar recarga la lista sin filtros.
             });
         </script>
     </body>

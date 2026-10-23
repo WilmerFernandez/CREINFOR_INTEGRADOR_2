@@ -1,8 +1,8 @@
-
 package utp_integrador_2.DAO;
 
 import utp_integrador_2_model.Solicitud;
 import utp_integrador_2_model.Asignacion;
+import utp_integrador_2.DTO.AsignacionDetalleDTO;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -12,10 +12,10 @@ public class AsignacionDAO {
 
     private final Connection connection;
 
-    private static final String INSERT =
-        "INSERT INTO asignaciones "
-        + "(id_solicitud, id_colaborador, es_coordinador) "
-        + "VALUES (?, ?, ?)";
+    private static final String INSERT
+            = "INSERT INTO asignaciones "
+            + "(id_solicitud, id_colaborador, es_coordinador) "
+            + "VALUES (?, ?, ?)";
 
     public AsignacionDAO(Connection connection) {
         this.connection = connection;
@@ -51,8 +51,7 @@ public class AsignacionDAO {
 
         List<Solicitud> lista = new ArrayList<>();
 
-        try (PreparedStatement ps = connection.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 lista.add(Solicitud.builder()
@@ -118,6 +117,38 @@ public class AsignacionDAO {
         return -1;
     }
 
+    public List<AsignacionDetalleDTO> listarAsignaciones()
+            throws SQLException {
+
+        List<AsignacionDetalleDTO> lista = new ArrayList<>();
+
+        String sql = "SELECT a.*, s.tipo_solicitud, s.motivo, "
+                + "s.estado, c.nombres, c.apellidos, c.rol "
+                + "FROM asignaciones a "
+                + "JOIN solicitudes s ON a.id_solicitud = s.id_solicitud "
+                + "JOIN colaboradores c ON a.id_colaborador = c.id_colaborador "
+                + "ORDER BY a.id_solicitud DESC, a.es_coordinador DESC";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+                lista.add(AsignacionDetalleDTO.builder()
+                        .idAsignacion(rs.getInt("id_asignacion"))
+                        .idSolicitud(rs.getInt("id_solicitud"))
+                        .idColaborador(rs.getInt("id_colaborador"))
+                        .tipoSolicitud(rs.getString("tipo_solicitud"))
+                        .motivo(rs.getString("motivo"))
+                        .estado(rs.getString("estado"))
+                        .nombres(rs.getString("nombres"))
+                        .apellidos(rs.getString("apellidos"))
+                        .rol(rs.getString("rol"))
+                        .esCoordinador(rs.getBoolean("es_coordinador"))
+                        .build());
+            }
+        }
+        return lista;
+    }
+
     // Registrar colaborador o designar coordinador
     // usando una transacción para proteger los cambios
     public void gestionarAsignacion(Asignacion asignacion)
@@ -127,7 +158,7 @@ public class AsignacionDAO {
 
         if (!autoCommitOriginal) {
             throw new SQLException(
-                "La conexión ya tiene una transacción activa."
+                    "La conexión ya tiene una transacción activa."
             );
         }
 
@@ -139,14 +170,14 @@ public class AsignacionDAO {
             int idColaborador = asignacion.getIdColaborador();
 
             // Bloquear la solicitud mientras se modifica
-            String sqlEstado =
-                    "SELECT estado FROM solicitudes "
+            String sqlEstado
+                    = "SELECT estado FROM solicitudes "
                     + "WHERE id_solicitud = ? FOR UPDATE";
 
             String estado;
 
-            try (PreparedStatement ps =
-                    connection.prepareStatement(sqlEstado)) {
+            try (PreparedStatement ps
+                    = connection.prepareStatement(sqlEstado)) {
 
                 ps.setInt(1, idSolicitud);
 
@@ -154,7 +185,7 @@ public class AsignacionDAO {
 
                     if (!rs.next()) {
                         throw new SQLException(
-                            "La solicitud no existe."
+                                "La solicitud no existe."
                         );
                     }
 
@@ -167,7 +198,7 @@ public class AsignacionDAO {
                     && !"en proceso".equalsIgnoreCase(estado)) {
 
                 throw new SQLException(
-                    "No se puede modificar una solicitud finalizada."
+                        "No se puede modificar una solicitud finalizada."
                 );
             }
 
@@ -177,14 +208,14 @@ public class AsignacionDAO {
             if (asignacion.isEsCoordinador()) {
 
                 // Quitar coordinación al responsable anterior
-                String quitarCoordinador =
-                        "UPDATE asignaciones "
+                String quitarCoordinador
+                        = "UPDATE asignaciones "
                         + "SET es_coordinador = 0 "
                         + "WHERE id_solicitud = ? "
                         + "AND es_coordinador = 1";
 
-                try (PreparedStatement ps =
-                        connection.prepareStatement(quitarCoordinador)) {
+                try (PreparedStatement ps
+                        = connection.prepareStatement(quitarCoordinador)) {
 
                     ps.setInt(1, idSolicitud);
                     ps.executeUpdate();
@@ -193,13 +224,13 @@ public class AsignacionDAO {
                 if (idAsignacion != -1) {
 
                     // Convertir en coordinador al ya asignado
-                    String actualizar =
-                            "UPDATE asignaciones "
+                    String actualizar
+                            = "UPDATE asignaciones "
                             + "SET es_coordinador = 1 "
                             + "WHERE id_asignacion = ?";
 
-                    try (PreparedStatement ps =
-                            connection.prepareStatement(actualizar)) {
+                    try (PreparedStatement ps
+                            = connection.prepareStatement(actualizar)) {
 
                         ps.setInt(1, idAsignacion);
                         ps.executeUpdate();
@@ -216,8 +247,8 @@ public class AsignacionDAO {
                 // Evitar asignaciones duplicadas
                 if (idAsignacion != -1) {
                     throw new SQLException(
-                        "Este colaborador ya está asignado "
-                        + "a esta solicitud."
+                            "Este colaborador ya está asignado "
+                            + "a esta solicitud."
                     );
                 }
 
@@ -240,7 +271,7 @@ public class AsignacionDAO {
             }
 
             throw new SQLException(
-                "Error al gestionar la asignación.", e
+                    "Error al gestionar la asignación.", e
             );
 
         } finally {

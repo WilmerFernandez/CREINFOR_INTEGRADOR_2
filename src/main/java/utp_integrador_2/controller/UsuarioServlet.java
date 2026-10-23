@@ -20,17 +20,19 @@ public class UsuarioServlet extends HttpServlet {
             HttpServletResponse response)
             throws ServletException, IOException {
 
-        String nombres =
-                request.getParameter("nombres");
+        request.setCharacterEncoding("UTF-8");
 
-        String apellidos =
-                request.getParameter("apellidos");
+        String nombres
+                = request.getParameter("nombres");
 
-        String email =
-                request.getParameter("email");
+        String apellidos
+                = request.getParameter("apellidos");
 
-        String tipoUsuario =
-                request.getParameter("tipoUsuario");
+        String email
+                = request.getParameter("email");
+
+        String tipoUsuario
+                = request.getParameter("tipoUsuario");
 
         UsuarioDTO dto = UsuarioDTO.builder()
                 .nombres(nombres)
@@ -39,19 +41,19 @@ public class UsuarioServlet extends HttpServlet {
                 .tipoUsuario(tipoUsuario)
                 .build();
 
-        try (Connection connection =
-                     BDConnection.getConnection()) {
+        try (Connection connection
+                = BDConnection.getConnection()) {
 
-            UsuarioFacade facade =
-                    new UsuarioFacade(connection);
+            UsuarioFacade facade
+                    = new UsuarioFacade(connection);
 
             // Registrar usuario y generar token
-            String token =
-                    facade.registrarUsuario(dto);
+            String token
+                    = facade.registrarUsuario(dto);
 
             // Construir enlace de activación
-            String enlaceActivacion =
-                    request.getScheme()
+            String enlaceActivacion
+                    = request.getScheme()
                     + "://"
                     + request.getServerName()
                     + ":"
@@ -60,7 +62,7 @@ public class UsuarioServlet extends HttpServlet {
                     + "/ActivarCuentaServlet?token="
                     + token;
 
-            // Enviar correo de activación
+// Enviar correo de activación
             EmailUtil.enviarActivacionCuenta(
                     email,
                     nombres,
@@ -82,8 +84,11 @@ public class UsuarioServlet extends HttpServlet {
 
             e.printStackTrace();
 
-            String mensajeError =
-                    e.getMessage();
+            String mensajeError = e.getMessage();
+
+            System.err.println("ERROR AL REGISTRAR USUARIO:");
+            System.err.println("Tipo de error: " + e.getClass().getName());
+            System.err.println("Detalle: " + mensajeError);
 
             if (mensajeError != null
                     && mensajeError.contains(
@@ -91,15 +96,15 @@ public class UsuarioServlet extends HttpServlet {
 
                 request.setAttribute(
                         "mensaje",
-                        "Ya existe una cuenta asociada "
-                        + "a ese correo electrónico."
+                        "Ya existe una cuenta asociada a ese correo electrónico."
                 );
 
             } else {
 
                 request.setAttribute(
                         "mensaje",
-                        "No se pudo registrar el usuario."
+                        "Ocurrió un error durante el registro. "
+                        + "Revise la consola de NetBeans."
                 );
             }
 

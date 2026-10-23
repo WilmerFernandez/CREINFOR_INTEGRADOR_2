@@ -17,8 +17,7 @@ public class ColaboradorDAO {
     public List<Colaborador> listarTodos() throws SQLException {
         List<Colaborador> lista = new ArrayList<>();
 
-        try (PreparedStatement ps = connection.prepareStatement(SELECT_ALL);
-             ResultSet rs = ps.executeQuery()) {
+        try (PreparedStatement ps = connection.prepareStatement(SELECT_ALL); ResultSet rs = ps.executeQuery()) {
 
             while (rs.next()) {
                 Colaborador c = Colaborador.builder()
@@ -113,7 +112,9 @@ public class ColaboradorDAO {
             ps.setString(1, email);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getInt("id_colaborador");
+                if (rs.next()) {
+                    return rs.getInt("id_colaborador");
+                }
             }
         }
         return -1;
@@ -126,9 +127,50 @@ public class ColaboradorDAO {
             ps.setInt(1, idColaborador);
 
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) return rs.getString("rol");
+                if (rs.next()) {
+                    return rs.getString("rol");
+                }
             }
         }
         return null;
+    }
+
+    public boolean eliminarColaborador(int idColaborador) {
+
+        String sql = "DELETE FROM colaboradores WHERE id_colaborador = ?";
+
+        try (Connection conn = BDConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idColaborador);
+
+            int filas = ps.executeUpdate();
+
+            return filas > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean tieneAsignaciones(int idColaborador)
+            throws SQLException {
+
+        String sql = "SELECT COUNT(*) FROM asignaciones "
+                + "WHERE id_colaborador = ?";
+
+        try (Connection conn = BDConnection.getConnection(); PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, idColaborador);
+
+            try (ResultSet rs = ps.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        }
+
+        return false;
     }
 }

@@ -1,3 +1,4 @@
+
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <!DOCTYPE html>
 <html lang="es">
@@ -120,11 +121,55 @@
             font-size: 16px;
             font-weight: 600;
             cursor: pointer;
-            transition: 0.25s;
+            transition: background 0.25s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
         }
 
-        .btn-register:hover {
+        .btn-register:hover:not(:disabled) {
             background: #125ca4;
+        }
+
+        .btn-register:disabled {
+            background: #78909c;
+            cursor: not-allowed;
+            opacity: 0.85;
+        }
+
+        /* Animación de carga */
+        .spinner {
+            display: none;
+            width: 17px;
+            height: 17px;
+            border: 3px solid rgba(255,255,255,0.35);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: girar 0.75s linear infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes girar {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .btn-register.cargando .spinner {
+            display: inline-block;
+        }
+
+        .mensaje-espera {
+            margin-top: 12px;
+            text-align: center;
+            color: #546e7a;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .mensaje-espera[hidden] {
+            display: none;
         }
 
         .message {
@@ -136,6 +181,12 @@
             color: #2e7d32;
             font-size: 14px;
             border: 1px solid #c8e6c9;
+        }
+
+        .message.error {
+            background: #ffebee;
+            color: #c62828;
+            border-color: #ffcdd2;
         }
 
         .activation-box {
@@ -164,6 +215,22 @@
             text-decoration: underline;
         }
 
+        .volver-container {
+            text-align: center;
+            margin-top: 18px;
+        }
+
+        .volver {
+            color: #1976d2;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .volver:hover {
+            text-decoration: underline;
+        }
+
         .footer {
             text-align: center;
             padding: 0 30px 25px;
@@ -179,24 +246,11 @@
             .header {
                 padding: 24px 20px;
             }
-        }
-        
-        
-        .volver-container {
-                text-align: center;
-                margin-top: 18px;
-            }
 
-            .volver {
-                color: #1976d2;
-                text-decoration: none;
+            .btn-register {
                 font-size: 14px;
-                font-weight: 500;
             }
-
-            .volver:hover {
-                text-decoration: underline;
-            }
+        }
     </style>
 </head>
 
@@ -206,11 +260,7 @@
 
     <div class="header">
 
-        <!--
-        Si tienes el logo, descomenta esta línea.
-        Cambia la ruta según dónde guardes tu imagen.
-        -->
-
+        <!-- Espacio para mi logo de  CREINFOR -->
         <!--
         <img
             src="${pageContext.request.contextPath}/img/logo-creinfor.png"
@@ -233,11 +283,14 @@
             de activación.
         </div>
 
-        <form action="UsuarioServlet" method="post">
+        <form
+            id="formRegistro"
+            action="${pageContext.request.contextPath}/UsuarioServlet"
+            method="post"
+        >
 
             <div class="form-group">
                 <label for="nombres">Nombres</label>
-
                 <input
                     type="text"
                     id="nombres"
@@ -250,7 +303,6 @@
 
             <div class="form-group">
                 <label for="apellidos">Apellidos</label>
-
                 <input
                     type="text"
                     id="apellidos"
@@ -262,7 +314,6 @@
 
             <div class="form-group">
                 <label for="email">Correo electrónico</label>
-
                 <input
                     type="email"
                     id="email"
@@ -280,55 +331,67 @@
                     name="tipoUsuario"
                     required
                 >
-
                     <option value="" disabled selected>
                         Seleccione un tipo de usuario
                     </option>
 
-                    <option value="cliente">
-                        Cliente
-                    </option>
-
-                    <option value="colaborador">
-                        Colaborador
-                    </option>
-
-                    <option value="admin">
-                        Administrador
-                    </option>
-
+                    <option value="cliente">Cliente</option>
+                    <option value="colaborador">Colaborador</option>
+                    <option value="admin">Administrador</option>
                 </select>
             </div>
 
+            <!-- BOTÓN DE REGISTRO -->
             <button
                 type="submit"
+                id="btnRegistrar"
                 class="btn-register"
             >
-                Crear usuario
+                <span class="spinner" aria-hidden="true"></span>
+                <span id="textoBoton">Crear usuario</span>
             </button>
-            
+
+            <!-- MENSAJE DE ESPERA -->
+            <div
+                id="mensajeEspera"
+                class="mensaje-espera"
+                role="status"
+                aria-live="polite"
+                hidden
+            >
+                Por favor, espere. No es necesario volver a presionar.
+            </div>
 
         </form>
-                    <%
-                String mensaje =
-                        (String) request.getAttribute("mensaje");
 
-                if (mensaje != null) {
-            %>
+        <!-- MENSAJE DEVUELTO POR EL SERVLET -->
+        <%
+            String mensaje = (String) request.getAttribute("mensaje");
 
-                <div class="message">
-                    <%= mensaje %>
-                </div>
+            if (mensaje != null) {
+                boolean esError =
+                    mensaje.contains("Ya existe")
+                    || mensaje.contains("No se pudo")
+                    || mensaje.contains("Ocurrió un error");
+        %>
 
-            <%
-                }
-            %>
-            
+            <div class="message <%= esError ? "error" : "" %>">
+                <%= mensaje %>
+            </div>
+
+        <%
+            }
+        %>
+
         <div class="volver-container">
-        <a href="adminDashboard.jsp" class="volver">
-            Volver al panel administrador
-        </a>
+            <a
+                href="${pageContext.request.contextPath}/adminDashboard.jsp"
+                class="volver"
+            >
+                Volver al panel administrador
+            </a>
         </div>
+
     </div>
 
     <div class="footer">
@@ -336,6 +399,51 @@
     </div>
 
 </div>
+
+<!-- JAVASCRIPT: COLOCADO DESPUÉS DEL FORMULARIO -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+
+        const formulario = document.getElementById("formRegistro");
+        const boton = document.getElementById("btnRegistrar");
+        const textoBoton = document.getElementById("textoBoton");
+        const mensajeEspera = document.getElementById("mensajeEspera");
+
+        let enviando = false;
+
+        formulario.addEventListener("submit", function (event) {
+
+            // Impedir solicitudes repetidas
+            if (enviando) {
+                event.preventDefault();
+                return;
+            }
+
+            enviando = true;
+
+            boton.disabled = true;
+            boton.classList.add("cargando");
+            textoBoton.textContent =
+                "Registrando usuario y enviando correo...";
+
+            mensajeEspera.hidden = false;
+        });
+
+        // Restablecer si se vuelve mediante el historial
+        window.addEventListener("pageshow", function (event) {
+
+            if (event.persisted) {
+                enviando = false;
+                boton.disabled = false;
+                boton.classList.remove("cargando");
+                textoBoton.textContent = "Crear usuario";
+                mensajeEspera.hidden = true;
+            }
+
+        });
+
+    });
+</script>
 
 </body>
 </html>

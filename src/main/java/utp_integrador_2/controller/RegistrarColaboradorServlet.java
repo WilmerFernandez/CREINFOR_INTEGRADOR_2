@@ -29,7 +29,7 @@ public class RegistrarColaboradorServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-
+        request.setCharacterEncoding("UTF-8");
         String nombres = request.getParameter("nombres");
         String apellidos = request.getParameter("apellidos");
         String email = request.getParameter("email");
