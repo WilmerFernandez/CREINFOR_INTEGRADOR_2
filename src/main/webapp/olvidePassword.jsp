@@ -161,8 +161,7 @@
             String mensaje =
                     (String) request.getAttribute("mensaje");
 
-            String enlace =
-                    (String) request.getAttribute("enlaceRecuperacion");
+            
 
             if (mensaje != null) {
         %>
@@ -174,20 +173,9 @@
         <%
             }
 
-            if (enlace != null) {
+          
         %>
 
-            <div class="link-box">
-                <strong>Enlace temporal:</strong><br><br>
-
-                <a href="<%= enlace %>">
-                    <%= enlace %>
-                </a>
-            </div>
-
-        <%
-            }
-        %>
 
         <a href="login.jsp" class="volver">
             Volver al inicio de sesión
