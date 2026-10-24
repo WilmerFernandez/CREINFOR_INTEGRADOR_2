@@ -16,7 +16,7 @@ public class BDConnection {
         String port = obtenerVariable("DB_PORT", "3306");
         String database = obtenerVariable("DB_NAME", "creinfor");
         String user = obtenerVariable("DB_USER", "root");
-        String password = System.getenv("admin123");
+        String password = System.getenv("DB_PASSWORD");
 
         if (password == null || password.isEmpty()) {
             throw new SQLException(
