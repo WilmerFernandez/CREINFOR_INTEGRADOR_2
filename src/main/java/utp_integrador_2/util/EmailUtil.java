@@ -1,155 +1,321 @@
 package utp_integrador_2.util;
 
-
 import javax.mail.*;
 import javax.mail.internet.*;
 import java.io.File;
-import java.io.UnsupportedEncodingException;
+import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.time.Duration;
+import java.util.Base64;
 import java.util.Properties;
 
 public class EmailUtil {
 
-    private static final String HOST = "smtp.gmail.com";
-    private static final String PORT = "587";
+    private static final String GMAIL_HOST = "smtp.gmail.com";
+    private static final String GMAIL_PORT = "587";
 
-    private static final String USERNAME ="wilmerfernandezbenavides@gmail.com";
-
-    // REEMPLAZA ESTO POR UNA NUEVA CLAVE DE APLICACIÓN
-    private static final String PASSWORD ="uilq dilb xnbn ilct";
-
-    // ==========================================
-    // OBTENER SESIÓN DE GMAIL
-    // ==========================================
-
-    private static Session obtenerSesion() {
-
-        Properties properties = new Properties();
-
-        properties.put("mail.smtp.auth", "true");
-        properties.put("mail.smtp.starttls.enable", "true");
-        properties.put("mail.smtp.starttls.required", "true");
-
-        properties.put("mail.smtp.host", HOST);
-        properties.put("mail.smtp.port", PORT);
-
-        properties.put(
-                "mail.smtp.ssl.trust",
-                HOST
-        );
-
-        properties.put(
-                "mail.smtp.ssl.protocols",
-                "TLSv1.2"
-        );
-
-        properties.put(
-                "mail.smtp.connectiontimeout",
-                "10000"
-        );
-
-        properties.put(
-                "mail.smtp.timeout",
-                "10000"
-        );
-
-        properties.put(
-                "mail.smtp.writetimeout",
-                "10000"
-        );
-
-        return Session.getInstance(
-                properties,
-                new Authenticator() {
-
-                    @Override
-                    protected PasswordAuthentication
-                    getPasswordAuthentication() {
-
-                        return new PasswordAuthentication(
-                                USERNAME,
-                                PASSWORD
-                        );
-                    }
-                }
-        );
+    private EmailUtil() {
     }
 
-    // ==========================================
-    // CONFIGURAR REMITENTE
-    // ==========================================
+    // Railway: RESEND
+    // Local: Gmail SMTP
+    private static boolean usarResend() {
+        return "RESEND".equalsIgnoreCase(
+                System.getenv("EMAIL_PROVIDER"));
+    }
 
-    private static void configurarRemitente(
-            MimeMessage email)
+    private static String variable(String nombre)
             throws MessagingException {
 
-        try {
+        String valor = System.getenv(nombre);
 
-            email.setFrom(
-                    new InternetAddress(
-                            USERNAME,
-                            "CREINFOR",
-                            "UTF-8"
-                    )
-            );
-
-        } catch (UnsupportedEncodingException e) {
-
+        if (valor == null || valor.isBlank()) {
             throw new MessagingException(
-                    "No se pudo configurar el remitente.",
-                    e
-            );
+                    "Falta configurar " + nombre);
+        }
+
+        return valor;
+    }
+
+    // =========================================
+    // SMTP PARA NETBEANS
+    // =========================================
+    private static Session obtenerSesion()
+            throws MessagingException {
+
+        String usuario = variable("GMAIL_USER");
+        String clave = variable("GMAIL_APP_PASSWORD");
+
+        Properties p = new Properties();
+        p.put("mail.smtp.auth", "true");
+        p.put("mail.smtp.starttls.enable", "true");
+        p.put("mail.smtp.starttls.required", "true");
+        p.put("mail.smtp.host", GMAIL_HOST);
+        p.put("mail.smtp.port", GMAIL_PORT);
+        p.put("mail.smtp.ssl.protocols", "TLSv1.2");
+        p.put("mail.smtp.connectiontimeout", "10000");
+        p.put("mail.smtp.timeout", "10000");
+        p.put("mail.smtp.writetimeout", "10000");
+
+        return Session.getInstance(p, new Authenticator() {
+            @Override
+            protected PasswordAuthentication
+                    getPasswordAuthentication() {
+                return new PasswordAuthentication(
+                        usuario, clave);
+            }
+        });
+    }
+
+    private static void enviarSMTP(
+            String destino,
+            String asunto,
+            String contenido,
+            boolean html,
+            File adjunto)
+            throws MessagingException {
+
+        MimeMessage correo
+                = new MimeMessage(obtenerSesion());
+
+        try {
+            correo.setFrom(new InternetAddress(
+                    variable("GMAIL_USER"),
+                    "CREINFOR", "UTF-8"));
+        } catch (java.io.UnsupportedEncodingException e) {
+            throw new MessagingException(
+                    "Error en el remitente", e);
+        }
+
+        correo.setRecipients(
+                Message.RecipientType.TO,
+                InternetAddress.parse(destino, true));
+
+        correo.setSubject(asunto, "UTF-8");
+
+        if (adjunto == null) {
+            correo.setContent(contenido,
+                    html ? "text/html; charset=UTF-8"
+                            : "text/plain; charset=UTF-8");
+        } else {
+            if (!adjunto.isFile()) {
+                throw new MessagingException(
+                        "No existe el archivo adjunto");
+            }
+
+            MimeMultipart multipart = new MimeMultipart();
+
+            MimeBodyPart texto = new MimeBodyPart();
+            texto.setContent(contenido,
+                    html ? "text/html; charset=UTF-8"
+                            : "text/plain; charset=UTF-8");
+            multipart.addBodyPart(texto);
+
+            MimeBodyPart archivo = new MimeBodyPart();
+            try {
+                archivo.attachFile(adjunto);
+            } catch (IOException e) {
+                throw new MessagingException(
+                        "Error al adjuntar archivo", e);
+            }
+
+            multipart.addBodyPart(archivo);
+            correo.setContent(multipart);
+        }
+
+        Transport.send(correo);
+    }
+
+    // =========================================
+    // JSON SEGURO PARA RESEND
+    // =========================================
+    private static String json(String valor) {
+
+        if (valor == null) {
+            return "\"\"";
+        }
+
+        StringBuilder sb = new StringBuilder("\"");
+
+        for (int i = 0; i < valor.length(); i++) {
+
+            char c = valor.charAt(i);
+
+            switch (c) {
+
+                case '"':
+                    sb.append("\\\"");
+                    break;
+
+                case '\\':
+                    sb.append("\\\\");
+                    break;
+
+                case '\n':
+                    sb.append("\\n");
+                    break;
+
+                case '\r':
+                    sb.append("\\r");
+                    break;
+
+                case '\t':
+                    sb.append("\\t");
+                    break;
+
+                default:
+                    if (c < 32) {
+                        sb.append(String.format(
+                                "\\u%04x", (int) c));
+                    } else {
+                        sb.append(c);
+                    }
+                    break;
+            }
+        }
+
+        return sb.append("\"").toString();
+    }
+
+    // =========================================
+    // API RESEND PARA RAILWAY
+    // =========================================
+    private static void enviarResend(
+            String destino,
+            String asunto,
+            String contenido,
+            boolean html,
+            File adjunto)
+            throws MessagingException {
+
+        String apiKey = variable("RESEND_API_KEY");
+        String remitente = variable("EMAIL_FROM");
+
+        StringBuilder cuerpo = new StringBuilder();
+
+        cuerpo.append("{")
+                .append("\"from\":").append(json(remitente))
+                .append(",\"to\":[")
+                .append(json(destino)).append("]")
+                .append(",\"subject\":")
+                .append(json(asunto))
+                .append(html ? ",\"html\":" : ",\"text\":")
+                .append(json(contenido));
+
+        if (adjunto != null) {
+            if (!adjunto.isFile()) {
+                throw new MessagingException(
+                        "No existe el PDF adjunto");
+            }
+
+            try {
+                String base64 = Base64.getEncoder()
+                        .encodeToString(
+                                Files.readAllBytes(
+                                        adjunto.toPath()));
+
+                cuerpo.append(",\"attachments\":[{")
+                        .append("\"filename\":")
+                        .append(json(adjunto.getName()))
+                        .append(",\"content\":")
+                        .append(json(base64))
+                        .append("}]");
+
+            } catch (IOException e) {
+                throw new MessagingException(
+                        "No se pudo leer el PDF", e);
+            }
+        }
+
+        cuerpo.append("}");
+
+        try {
+            HttpClient cliente = HttpClient.newBuilder()
+                    .connectTimeout(Duration.ofSeconds(10))
+                    .build();
+
+            HttpRequest solicitud
+                    = HttpRequest.newBuilder()
+                            .uri(URI.create(
+                                    "https://api.resend.com/emails"))
+                            .timeout(Duration.ofSeconds(30))
+                            .header("Authorization",
+                                    "Bearer " + apiKey)
+                            .header("Content-Type",
+                                    "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofString(
+                                    cuerpo.toString(),
+                                    StandardCharsets.UTF_8))
+                            .build();
+
+            HttpResponse<String> respuesta
+                    = cliente.send(
+                            solicitud,
+                            HttpResponse.BodyHandlers.ofString());
+
+            int estado = respuesta.statusCode();
+
+            if (estado < 200 || estado >= 300) {
+                throw new MessagingException(
+                        "Resend HTTP " + estado
+                        + ": " + respuesta.body());
+            }
+
+            System.out.println(
+                    "Correo aceptado por Resend: "
+                    + respuesta.body());
+
+        } catch (IOException e) {
+            throw new MessagingException(
+                    "Error de conexión con Resend", e);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new MessagingException(
+                    "Envío de correo interrumpido", e);
         }
     }
 
-    // ==========================================
-    // CORREO NORMAL
-    // ==========================================
+    // =========================================
+    // MÉTODO CENTRAL
+    // =========================================
+    private static void enviar(
+            String destino,
+            String asunto,
+            String contenido,
+            boolean html,
+            File adjunto)
+            throws MessagingException {
 
+        if (usarResend()) {
+            enviarResend(destino, asunto,
+                    contenido, html, adjunto);
+        } else {
+            enviarSMTP(destino, asunto,
+                    contenido, html, adjunto);
+        }
+    }
+
+    // =========================================
+    // CORREO NORMAL
+    // =========================================
     public static void sendEmail(
             String toEmail,
             String subject,
             String message)
             throws MessagingException {
 
-        Session session = obtenerSesion();
-
-        MimeMessage email =
-                new MimeMessage(session);
-
-        // Remitente
-        configurarRemitente(email);
-
-        // Destinatario
-        email.setRecipient(
-                Message.RecipientType.TO,
-                new InternetAddress(toEmail)
-        );
-
-        // Asunto
-        email.setSubject(
-                subject,
-                "UTF-8"
-        );
-
-        // Mensaje
-        email.setText(
-                message,
-                "UTF-8"
-        );
-
-        // Enviar
-        Transport.send(email);
-
-        System.out.println(
-                "Correo enviado exitosamente a "
-                + toEmail
-        );
+        enviar(toEmail, subject, message, false, null);
     }
 
-    // ==========================================
-    // CORREO CON PDF ADJUNTO
-    // ==========================================
-
+    // =========================================
+    // CORREO CON PDF
+    // =========================================
     public static void sendEmailConAdjunto(
             String toEmail,
             String subject,
@@ -157,216 +323,73 @@ public class EmailUtil {
             File archivo)
             throws MessagingException {
 
-        Session session = obtenerSesion();
-
-        MimeMessage email =
-                new MimeMessage(session);
-
-        // ======================================
-        // REMITENTE
-        // ======================================
-
-        configurarRemitente(email);
-
-        // ======================================
-        // DESTINATARIO
-        // ======================================
-
-        email.setRecipient(
-                Message.RecipientType.TO,
-                new InternetAddress(toEmail)
-        );
-
-        // ======================================
-        // ASUNTO
-        // ======================================
-
-        email.setSubject(
-                subject,
-                "UTF-8"
-        );
-
-        // ======================================
-        // CONTENIDO MULTIPART
-        // ======================================
-
-        Multipart multipart =
-                new MimeMultipart();
-
-        // ======================================
-        // TEXTO DEL CORREO
-        // ======================================
-
-        MimeBodyPart texto =
-                new MimeBodyPart();
-
-        texto.setText(
-                message,
-                "UTF-8"
-        );
-
-        multipart.addBodyPart(texto);
-
-        // ======================================
-        // ARCHIVO PDF
-        // ======================================
-
-        MimeBodyPart adjunto =
-                new MimeBodyPart();
-
-        try {
-
-            adjunto.attachFile(archivo);
-
-        } catch (Exception e) {
-
-            throw new MessagingException(
-                    "No se pudo adjuntar el PDF.",
-                    e
-            );
-        }
-
-        adjunto.setFileName(
-                archivo.getName()
-        );
-
-        multipart.addBodyPart(adjunto);
-
-        // ======================================
-        // ASIGNAR CONTENIDO
-        // ======================================
-
-        email.setContent(multipart);
-
-        // ======================================
-        // ENVIAR
-        // ======================================
-
-        Transport.send(email);
-
-        System.out.println(
-                "Correo con PDF enviado exitosamente a "
-                + toEmail
-        );
+        enviar(toEmail, subject, message,
+                false, archivo);
     }
-    
-    // ==========================================
-// CORREO DE ACTIVACIÓN DE CUENTA
-// ==========================================
 
+    // =========================================
+    // CORREO DE ACTIVACIÓN
+    // =========================================
     public static void enviarActivacionCuenta(
             String toEmail,
             String nombre,
             String enlaceActivacion)
             throws MessagingException {
 
-        Session session = obtenerSesion();
+        String nombreSeguro = escaparHtml(nombre);
+        String enlaceSeguro = escaparHtml(enlaceActivacion);
 
-        MimeMessage email =
-                new MimeMessage(session);
-
-        configurarRemitente(email);
-
-        email.setRecipient(
-                Message.RecipientType.TO,
-                new InternetAddress(toEmail)
-        );
-
-        email.setSubject(
-                "Activa tu cuenta - CREINFOR",
-                "UTF-8"
-        );
-
-        String contenido =
-                "<div style='font-family:Arial,sans-serif;"
+        String contenido
+                = "<div style='font-family:Arial,sans-serif;"
                 + "max-width:600px;margin:auto;"
                 + "border:1px solid #ddd;"
-                + "border-radius:10px;"
-                + "overflow:hidden;'>"
-
+                + "border-radius:10px;overflow:hidden;'>"
                 + "<div style='background:#153b5b;"
-                + "color:white;"
-                + "padding:25px;"
+                + "color:white;padding:25px;"
                 + "text-align:center;'>"
-
-                + "<h1 style='margin:0;'>CREINFOR</h1>"
-                + "<p style='margin:8px 0 0;'>Activación de cuenta</p>"
-
-                + "</div>"
-
+                + "<h1>CREINFOR</h1>"
+                + "<p>Activación de cuenta</p></div>"
                 + "<div style='padding:30px;'>"
-
-                + "<h2 style='color:#263238;'>Hola, "
-                + nombre
-                + "</h2>"
-
-                + "<p style='color:#455a64;line-height:1.6;'>"
-                + "Se ha creado una cuenta para ti en el sistema CREINFOR."
-                + "</p>"
-
-                + "<p style='color:#455a64;line-height:1.6;'>"
-                + "Para activar tu cuenta y establecer tu contraseña personal, "
-                + "haz clic en el siguiente botón:"
-                + "</p>"
-
-                + "<div style='text-align:center;margin:30px 0;'>"
-
-                + "<a href='"
-                + enlaceActivacion
-                + "' style='"
-                + "background:#1976d2;"
-                + "color:white;"
-                + "padding:14px 28px;"
+                + "<h2>Hola, " + nombreSeguro + "</h2>"
+                + "<p>Se ha creado una cuenta para ti "
+                + "en el sistema CREINFOR.</p>"
+                + "<p>Para activar tu cuenta y establecer "
+                + "tu contraseña personal, utiliza "
+                + "el siguiente botón:</p>"
+                + "<div style='text-align:center;"
+                + "margin:30px 0;'>"
+                + "<a href='" + enlaceSeguro + "' "
+                + "style='background:#1976d2;"
+                + "color:white;padding:14px 28px;"
                 + "text-decoration:none;"
                 + "border-radius:8px;"
-                + "font-weight:bold;"
                 + "display:inline-block;'>"
-
-                + "ACTIVAR MI CUENTA"
-
-                + "</a>"
-
-                + "</div>"
-
-                + "<p style='font-size:13px;"
-                + "color:#777;"
-                + "line-height:1.5;'>"
-                + "Este enlace tiene una duración limitada "
-                + "y solo puede utilizarse una vez."
-                + "</p>"
-
-                + "<p style='font-size:13px;"
-                + "color:#777;"
-                + "line-height:1.5;'>"
-                + "Si no esperabas recibir este mensaje, "
-                + "puedes ignorarlo."
-                + "</p>"
-
-                + "</div>"
-
+                + "ACTIVAR MI CUENTA</a></div>"
+                + "<p style='font-size:13px;color:#777;'>"
+                + "Este enlace tiene duración limitada "
+                + "y solo puede utilizarse una vez.</p>"
+                + "<p style='font-size:13px;color:#777;'>"
+                + "Si no esperabas este mensaje, "
+                + "puedes ignorarlo.</p></div>"
                 + "<div style='background:#f5f5f5;"
-                + "padding:15px;"
-                + "text-align:center;"
-                + "font-size:12px;"
-                + "color:#777;'>"
+                + "padding:15px;text-align:center;"
+                + "font-size:12px;color:#777;'>"
+                + "CREINFOR © 2026</div></div>";
 
-                + "CREINFOR © 2026"
+        enviar(toEmail,
+                "Activa tu cuenta - CREINFOR",
+                contenido, true, null);
+    }
 
-                + "</div>"
+    private static String escaparHtml(String texto) {
+        if (texto == null) {
+            return "";
+        }
 
-                + "</div>";
-
-        email.setContent(
-                contenido,
-                "text/html; charset=UTF-8"
-        );
-
-        Transport.send(email);
-
-        System.out.println(
-                "Correo de activación enviado exitosamente a "
-                + toEmail
-        );
-}
-        
+        return texto.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
 }
