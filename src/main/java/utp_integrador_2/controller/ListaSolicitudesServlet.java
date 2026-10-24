@@ -1,166 +1,399 @@
-package utp_integrador_2.controller;
 
+package utp_integrador_2.controller;
 
 import utp_integrador_2.DAO.BDConnection;
 import utp_integrador_2.facade.SolicitudFacade;
+import utp_integrador_2.facade.CotizacionFacade;
 import utp_integrador_2_model.Solicitud;
 import utp_integrador_2_model.Usuario;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.*;
+
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.List;
+import java.sql.*;
+import java.util.*;
 
 @WebServlet("/listaSolicitudes")
 public class ListaSolicitudesServlet extends HttpServlet {
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private Usuario usuarioActual(HttpServletRequest request) {
         HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("usuario") == null) {
-            response.sendRedirect("login.jsp");
+        return session == null ? null
+                : (Usuario) session.getAttribute("usuario");
+    }
+
+    private boolean esCliente(Usuario usuario) {
+        return usuario != null
+                && "cliente".equalsIgnoreCase(
+                        usuario.getTipoUsuario());
+    }
+
+    private void mensaje(HttpServletRequest request,
+            String tipo, String texto) {
+
+        request.getSession().setAttribute(tipo, texto);
+    }
+
+    private void regresar(HttpServletRequest request,
+            HttpServletResponse response) throws IOException {
+
+        response.sendRedirect(
+                request.getContextPath() + "/listaSolicitudes");
+    }
+
+    @Override
+    protected void doGet(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        Usuario usuario = usuarioActual(request);
+
+        if (usuario == null) {
+            response.sendRedirect(
+                    request.getContextPath() + "/login.jsp");
             return;
         }
 
-        Usuario usuario = (Usuario) session.getAttribute("usuario");
-        String action = request.getParameter("action"); 
+        String rol = usuario.getTipoUsuario();
+
+        if (!"cliente".equalsIgnoreCase(rol)
+                && !"colaborador".equalsIgnoreCase(rol)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
 
         try (Connection connection = BDConnection.getConnection()) {
-            SolicitudFacade facade = new SolicitudFacade(connection);
 
+            SolicitudFacade solicitudFacade =
+                    new SolicitudFacade(connection);
+
+            CotizacionFacade cotizacionFacade =
+                    new CotizacionFacade(connection);
+
+            String action = request.getParameter("action");
+
+            // ABRIR FORMULARIO DE EDICIÓN
             if ("edit".equals(action)) {
-                int idSolicitud = Integer.parseInt(request.getParameter("id"));
-                Solicitud solicitudAEditar = facade.obtenerSolicitudPorId(idSolicitud);
 
-                if (solicitudAEditar != null && "pendiente".equalsIgnoreCase(solicitudAEditar.getEstado()) && solicitudAEditar.getIdUsuario() == usuario.getIdUsuario()) {
-                    request.setAttribute("solicitudAEditar", solicitudAEditar);
-                    request.getRequestDispatcher("editarSolicitud.jsp").forward(request, response);
-                    return; 
-                } else {
-                    request.setAttribute("errorMessage", "Solicitud no encontrada, no puede ser editada o no es de su propiedad.");
+                if (!esCliente(usuario)) {
+                    response.sendError(
+                            HttpServletResponse.SC_FORBIDDEN);
+                    return;
                 }
+
+                int idSolicitud = Integer.parseInt(
+                        request.getParameter("id"));
+
+                Solicitud solicitud =
+                        solicitudFacade.obtenerSolicitudPorId(
+                                idSolicitud);
+
+                if (solicitud != null
+                        && solicitud.getIdUsuario()
+                                == usuario.getIdUsuario()
+                        && "pendiente".equalsIgnoreCase(
+                                solicitud.getEstado())
+                        && !cotizacionFacade
+                                .tieneCotizacionBloqueante(
+                                        idSolicitud)
+                        && !solicitudFacade
+                                .verificarSiTieneAsignaciones(
+                                        idSolicitud)) {
+
+                    request.setAttribute(
+                            "solicitudAEditar", solicitud);
+
+                    request.getRequestDispatcher(
+                            "/editarSolicitud.jsp")
+                            .forward(request, response);
+                    return;
+                }
+
+                request.setAttribute("errorMessage",
+                        "Esta solicitud no se puede editar. "
+                        + "Puede tener una cotización activa, "
+                        + "estar asignada o no ser de tu propiedad.");
             }
-            
+
             List<Solicitud> lista;
-            switch (usuario.getTipoUsuario()) {
-                case "cliente":
-                    lista = facade.obtenerSolicitudesPorUsuario(usuario.getIdUsuario());
-                    break;
-                case "colaborador": 
-                    lista = facade.obtenerSolicitudesPorColaborador(usuario.getIdUsuario());
-                    break;
-                default:
-                    lista = null;
-                    break;
+
+            if (esCliente(usuario)) {
+                lista = solicitudFacade.obtenerSolicitudesPorUsuario(
+                        usuario.getIdUsuario());
+            } else {
+                lista = solicitudFacade.obtenerSolicitudesPorColaborador(
+                        usuario.getIdUsuario());
+            }
+
+            if (lista == null) {
+                lista = new ArrayList<>();
+            }
+
+            // Consultar permisos para mostrar botones
+            Set<Integer> editables = new HashSet<>();
+            Set<Integer> eliminables = new HashSet<>();
+            Set<Integer> conCotizacion = new HashSet<>();
+
+            if (esCliente(usuario)) {
+
+                for (Solicitud s : lista) {
+
+                    int id = s.getIdSolicitud();
+
+                    boolean existeCotizacion =
+                            cotizacionFacade
+                                    .tieneAlgunaCotizacion(id);
+
+                    boolean bloqueante =
+                            cotizacionFacade
+                                    .tieneCotizacionBloqueante(id);
+
+                    if (existeCotizacion) {
+                        conCotizacion.add(id);
+                    }
+
+                    if (!"pendiente".equalsIgnoreCase(
+                            s.getEstado())) {
+                        continue;
+                    }
+
+                    // Las solicitudes asignadas no se modifican
+                    if (solicitudFacade
+                            .verificarSiTieneAsignaciones(id)) {
+                        continue;
+                    }
+
+                    if (!bloqueante) {
+                        editables.add(id);
+
+                        if (!existeCotizacion) {
+                            eliminables.add(id);
+                        }
+                    }
+                }
             }
 
             request.setAttribute("listaSolicitudes", lista);
-            String jspDestino = usuario.getTipoUsuario().equals("cliente") ? "clienteSolicitudes.jsp" : "colaboradorSolicitudes.jsp";
-            request.getRequestDispatcher(jspDestino).forward(request, response);
+            request.setAttribute("editables", editables);
+            request.setAttribute("eliminables", eliminables);
+            request.setAttribute("conCotizacion", conCotizacion);
+
+            String jspDestino = esCliente(usuario)
+                    ? "/clienteSolicitudes.jsp"
+                    : "/colaboradorSolicitudes.jsp";
+
+            request.getRequestDispatcher(jspDestino)
+                    .forward(request, response);
 
         } catch (NumberFormatException e) {
-            e.printStackTrace();
-            request.setAttribute("errorMessage", "ID de solicitud inválido.");
-            request.getRequestDispatcher("/WEB-INF/views/errorPage.jsp").forward(request, response);
-        } catch (SQLException e) { 
-            e.printStackTrace();
-            request.setAttribute("errorMessage", "Error de base de datos: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/errorPage.jsp").forward(request, response);
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST,
+                    "ID de solicitud inválido.");
+
         } catch (Exception e) {
-            e.printStackTrace();
-            request.setAttribute("errorMessage", "Error inesperado: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/errorPage.jsp").forward(request, response);
+            throw new ServletException(
+                    "Error al consultar solicitudes.", e);
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("usuario") == null) {
-            response.sendRedirect("login.jsp");
+    protected void doPost(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
+        request.setCharacterEncoding("UTF-8");
+
+        Usuario usuario = usuarioActual(request);
+
+        if (!esCliente(usuario)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
-        Usuario usuario = (Usuario) session.getAttribute("usuario");
         String action = request.getParameter("action");
 
+        if (!"actualizar".equals(action)
+                && !"eliminar".equals(action)) {
+            response.sendError(
+                    HttpServletResponse.SC_BAD_REQUEST);
+            return;
+        }
+
+        int idSolicitud;
+
+        try {
+            String parametro = "actualizar".equals(action)
+                    ? request.getParameter("idSolicitud")
+                    : request.getParameter("id");
+
+            idSolicitud = Integer.parseInt(parametro);
+
+            if (idSolicitud <= 0) {
+                throw new NumberFormatException();
+            }
+
+        } catch (NumberFormatException e) {
+            mensaje(request, "errorMessage",
+                    "El ID de la solicitud no es válido.");
+            regresar(request, response);
+            return;
+        }
+
         try (Connection connection = BDConnection.getConnection()) {
-            SolicitudFacade facade = new SolicitudFacade(connection);
 
-            if ("eliminar".equals(action)) {
-                try {
-                    int idSolicitud = Integer.parseInt(request.getParameter("id"));
-                    Solicitud solicitud = facade.obtenerSolicitudPorId(idSolicitud);
+            connection.setAutoCommit(false);
 
-                    if (solicitud != null && solicitud.getIdUsuario() == usuario.getIdUsuario()) {
-                        // Primero, verificar si la solicitud ya está asignada
-                        if (facade.verificarSiTieneAsignaciones(idSolicitud)) {
-                            request.setAttribute("errorMessage", "La solicitud ya ha sido asignada y no puede ser eliminada.");
-                        } else if ("pendiente".equalsIgnoreCase(solicitud.getEstado())) { // Solo si está pendiente Y no asignada
-                            boolean eliminado = facade.eliminarSolicitud(idSolicitud);
-                            if (eliminado) {
-                                request.setAttribute("successMessage", "Solicitud eliminada con éxito.");
-                            } else {
-                                request.setAttribute("errorMessage", "No se pudo eliminar la solicitud. Asegúrese de que esté en estado 'pendiente' y que sea su solicitud.");
-                            }
-                        } else { // Si no está pendiente pero tampoco asignada (ej. en proceso, finalizada)
-                            request.setAttribute("errorMessage", "La solicitud no puede ser eliminada porque su estado no es 'pendiente'.");
+            try {
+                // Bloquear la solicitud durante la validación
+                String sql = "SELECT id_usuario, estado "
+                        + "FROM solicitudes "
+                        + "WHERE id_solicitud = ? FOR UPDATE";
+
+                int propietario = -1;
+                String estado = null;
+
+                try (PreparedStatement ps =
+                        connection.prepareStatement(sql)) {
+
+                    ps.setInt(1, idSolicitud);
+
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            propietario = rs.getInt("id_usuario");
+                            estado = rs.getString("estado");
                         }
-                    } else {
-                        request.setAttribute("errorMessage", "No tiene permisos para eliminar esta solicitud o no se encontró.");
                     }
-                } catch (NumberFormatException e) {
-                    request.setAttribute("errorMessage", "ID de solicitud inválido para eliminar.");
-                } catch (RuntimeException e) { 
-                    request.setAttribute("errorMessage", "Error al eliminar la solicitud: " + e.getMessage());
-                    e.printStackTrace();
                 }
-            } else if ("actualizar".equals(action)) {
-                // ... (tu lógica existente para actualizar, no necesita cambios para este requisito)
-                try { 
-                    int idSolicitud = Integer.parseInt(request.getParameter("idSolicitud"));
-                    String tipoSolicitud = request.getParameter("tipoSolicitud");
+
+                if (propietario != usuario.getIdUsuario()
+                        || !"pendiente".equalsIgnoreCase(estado)) {
+
+                    throw new IllegalStateException(
+                            "La solicitud no te pertenece "
+                            + "o ya no está pendiente.");
+                }
+
+                SolicitudFacade solicitudFacade =
+                        new SolicitudFacade(connection);
+
+                CotizacionFacade cotizacionFacade =
+                        new CotizacionFacade(connection);
+
+                if (solicitudFacade
+                        .verificarSiTieneAsignaciones(
+                                idSolicitud)) {
+
+                    throw new IllegalStateException(
+                            "La solicitud ya tiene colaboradores "
+                            + "asignados y no puede modificarse.");
+                }
+
+                if (cotizacionFacade
+                        .tieneCotizacionBloqueante(
+                                idSolicitud)) {
+
+                    throw new IllegalStateException(
+                            "La solicitud tiene una cotización "
+                            + "en trámite y no puede modificarse.");
+                }
+
+                boolean resultado;
+
+                if ("eliminar".equals(action)) {
+
+                    // Evitar romper la relación con cotizaciones
+                    if (cotizacionFacade
+                            .tieneAlgunaCotizacion(idSolicitud)) {
+
+                        throw new IllegalStateException(
+                                "No se puede eliminar una solicitud "
+                                + "que tiene historial de cotizaciones.");
+                    }
+
+                    resultado = solicitudFacade.eliminarSolicitud(
+                            idSolicitud);
+
+                } else {
+
+                    String tipoSolicitud =
+                            request.getParameter("tipoSolicitud");
+
                     String motivo = request.getParameter("motivo");
 
-                    Solicitud solicitud = facade.obtenerSolicitudPorId(idSolicitud);
-                    if (solicitud != null && "pendiente".equalsIgnoreCase(solicitud.getEstado()) && solicitud.getIdUsuario() == usuario.getIdUsuario()) {
-                        // Antes de actualizar, podrías considerar si la solicitud fue asignada,
-                        // pero el requerimiento es solo para la eliminación.
-                        solicitud.setTipoSolicitud(tipoSolicitud);
-                        solicitud.setMotivo(motivo);
+                    if (tipoSolicitud == null
+                            || (!"error".equals(tipoSolicitud)
+                            && !"capacitación".equals(tipoSolicitud)
+                            && !"requerimiento".equals(tipoSolicitud))
+                            || motivo == null
+                            || motivo.trim().isEmpty()
+                            || motivo.length() > 2000) {
 
-                        boolean actualizado = facade.actualizarSolicitud(solicitud);
-                        if (actualizado) {
-                            request.setAttribute("successMessage", "Solicitud actualizada con éxito.");
-                        } else {
-                            request.setAttribute("errorMessage", "No se pudo actualizar la solicitud. Asegúrese de que esté en estado 'pendiente' y que sea su solicitud.");
-                        }
-                    } else {
-                        request.setAttribute("errorMessage", "No tiene permisos para actualizar esta solicitud o no está en estado 'pendiente'.");
+                        throw new IllegalArgumentException(
+                                "Los datos ingresados no son válidos.");
                     }
-                } catch (NumberFormatException e) {
-                    request.setAttribute("errorMessage", "ID de solicitud inválido para actualizar.");
-                } catch (RuntimeException e) { 
-                    request.setAttribute("errorMessage", "Error al actualizar la solicitud: " + e.getMessage());
-                    e.printStackTrace();
+
+                    Solicitud solicitud =
+                            solicitudFacade.obtenerSolicitudPorId(
+                                    idSolicitud);
+
+                    if (solicitud == null) {
+                        throw new IllegalStateException(
+                                "La solicitud no existe.");
+                    }
+
+                    solicitud.setTipoSolicitud(tipoSolicitud);
+                    solicitud.setMotivo(motivo.trim());
+
+                    resultado =
+                            solicitudFacade.actualizarSolicitud(
+                                    solicitud);
                 }
-            } else {
-                request.setAttribute("errorMessage", "Acción no reconocida.");
+
+                if (!resultado) {
+                    throw new IllegalStateException(
+                            "No se pudo completar la operación.");
+                }
+
+                connection.commit();
+
+                mensaje(request, "successMessage",
+                        "eliminar".equals(action)
+                                ? "Solicitud eliminada correctamente."
+                                : "Solicitud actualizada correctamente.");
+
+            } catch (Exception e) {
+
+                connection.rollback();
+
+                if (e instanceof IllegalStateException
+                        || e instanceof IllegalArgumentException) {
+
+                    mensaje(request, "errorMessage",
+                            e.getMessage());
+
+                } else {
+                    getServletContext().log(
+                            "Error al modificar solicitud", e);
+
+                    mensaje(request, "errorMessage",
+                            "No se pudo completar la operación.");
+                }
+
+            } finally {
+                connection.setAutoCommit(true);
             }
-            
-            doGet(request, response);
-            
-        } catch (SQLException e) { 
-            e.printStackTrace();
-            request.setAttribute("errorMessage", "Error de conexión a la base de datos: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/errorPage.jsp").forward(request, response);
-        } catch (Exception e) { 
-            e.printStackTrace();
-            request.setAttribute("errorMessage", "Error general al procesar la solicitud POST: " + e.getMessage());
-            request.getRequestDispatcher("/WEB-INF/views/errorPage.jsp").forward(request, response);
+
+        } catch (SQLException e) {
+
+            getServletContext().log(
+                    "Error de base de datos", e);
+
+            mensaje(request, "errorMessage",
+                    "No se pudo conectar con la base de datos.");
         }
+
+        regresar(request, response);
     }
 }

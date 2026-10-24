@@ -41,13 +41,23 @@ public class AsignacionDAO {
         }
     }
 
-    // Solicitudes pendientes y en proceso
     public List<Solicitud> listarSolicitudesPendientes()
             throws SQLException {
 
-        String sql = "SELECT * FROM solicitudes "
-                + "WHERE estado IN ('pendiente', 'en proceso') "
-                + "ORDER BY id_solicitud DESC";
+        String sql = "SELECT s.* FROM solicitudes s "
+                + "WHERE s.estado IN ('pendiente', 'en proceso') "
+                + "AND ("
+                + "EXISTS ("
+                + "SELECT 1 FROM cotizaciones c "
+                + "WHERE c.id_solicitud = s.id_solicitud "
+                + "AND c.estado = 'aprobada'"
+                + ") "
+                + "OR EXISTS ("
+                + "SELECT 1 FROM asignaciones a "
+                + "WHERE a.id_solicitud = s.id_solicitud"
+                + ")"
+                + ") "
+                + "ORDER BY s.id_solicitud DESC";
 
         List<Solicitud> lista = new ArrayList<>();
 
@@ -202,6 +212,47 @@ public class AsignacionDAO {
                 );
             }
 
+// VALIDAR APROBACIÓN DE COTIZACIÓN
+            String sqlValidacion
+                    = "SELECT "
+                    + "EXISTS ("
+                    + "SELECT 1 FROM cotizaciones "
+                    + "WHERE id_solicitud = ? "
+                    + "AND estado = 'aprobada'"
+                    + ") AS aprobada, "
+                    + "EXISTS ("
+                    + "SELECT 1 FROM asignaciones "
+                    + "WHERE id_solicitud = ?"
+                    + ") AS ya_asignada";
+
+            boolean cotizacionAprobada = false;
+            boolean yaAsignada = false;
+
+            try (PreparedStatement ps
+                    = connection.prepareStatement(sqlValidacion)) {
+
+                ps.setInt(1, idSolicitud);
+                ps.setInt(2, idSolicitud);
+
+                try (ResultSet rs = ps.executeQuery()) {
+
+                    if (rs.next()) {
+                        cotizacionAprobada = rs.getBoolean("aprobada");
+                        yaAsignada = rs.getBoolean("ya_asignada");
+                    }
+                }
+            }
+
+// No permitir nuevas asignaciones sin aprobación.
+// Conservar solicitudes antiguas ya asignadas.
+            if (!cotizacionAprobada && !yaAsignada) {
+
+                throw new SQLException(
+                        "No se puede asignar esta solicitud porque "
+                        + "todavía no tiene una cotización aprobada."
+                );
+            }
+
             int idAsignacion = obtenerIdAsignacion(
                     idSolicitud, idColaborador);
 
@@ -254,6 +305,20 @@ public class AsignacionDAO {
 
                 // Nueva asignación sin coordinación
                 insert(asignacion);
+            }
+
+            // Cambiar automáticamente la solicitud a "en proceso"
+            String actualizarEstado
+                    = "UPDATE solicitudes "
+                    + "SET estado = 'en proceso' "
+                    + "WHERE id_solicitud = ? "
+                    + "AND estado = 'pendiente'";
+
+            try (PreparedStatement ps
+                    = connection.prepareStatement(actualizarEstado)) {
+
+                ps.setInt(1, idSolicitud);
+                ps.executeUpdate();
             }
 
             connection.commit();

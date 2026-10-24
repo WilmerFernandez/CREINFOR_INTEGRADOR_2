@@ -1,4 +1,3 @@
-
 <%@ page contentType="text/html;charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ page import="java.util.List" %>
 <%@ page import="java.util.ArrayList" %>
@@ -470,6 +469,14 @@
                 color: #ac293b;
             }
 
+            .alerta-exito {
+                background: #e5f5ea;
+                color: #207743;
+                padding: 15px;
+                border-radius: 9px;
+                margin: 15px 0;
+            }
+
             .empty {
                 text-align: center;
                 padding: 35px;
@@ -515,6 +522,51 @@
                     padding: 17px;
                 }
             }
+
+            .btn-informe {
+                display: inline-block;
+                background: #188A8D;
+                color: white;
+                padding: 10px 13px;
+                border-radius: 7px;
+                text-decoration: none;
+                font-size: 12px;
+                font-weight: 600;
+            }
+
+            .btn-informe:hover {
+                background: #116e72;
+                color: white;
+            }
+
+            .estado-informe {
+                display: inline-block;
+                padding: 9px 12px;
+                border-radius: 7px;
+                font-size: 12px;
+                font-weight: 600;
+                white-space: nowrap;
+            }
+
+            .estado-informe.enviado {
+                background: #e1f5e7;
+                color: #207e46;
+            }
+
+            .estado-informe.procesando {
+                background: #e0efff;
+                color: #1769aa;
+            }
+
+            .estado-informe.error-envio {
+                background: #fff3cd;
+                color: #916200;
+            }
+
+            .estado-informe.sin-informe {
+                background: #edf0f4;
+                color: #718096;
+            }
         </style>
     </head>
 
@@ -557,16 +609,18 @@
             </div>
 
             <!-- MENSAJES -->
-            <c:if test="${not empty mensajeExito}">
-                <div class="message-success">
-                    <c:out value="${mensajeExito}"/>
-                </div>
-            </c:if>
 
             <c:if test="${not empty mensajeError}">
                 <div class="message-error">
                     <c:out value="${mensajeError}"/>
                 </div>
+            </c:if>
+
+            <c:if test="${not empty sessionScope.mensajeExito}">
+                <div class="alerta-exito">
+                    <c:out value="${sessionScope.mensajeExito}"/>
+                </div>
+                <c:remove var="mensajeExito" scope="session"/>
             </c:if>
 
             <!-- RESUMEN -->
@@ -699,24 +753,63 @@
                                                 Ver detalle
                                             </a>
 
-                                            <% if (esCoordinador
-                                                && !"finalizada".equalsIgnoreCase(s.getEstado())) {%>
 
-                                            <form action="${pageContext.request.contextPath}/culminarSolicitud"
-                                                  method="post">
 
-                                                <input type="hidden"
-                                                       name="idSolicitudCulminar"
-                                                       value="<%= s.getIdSolicitud()%>">
+                                            <%
+                                                String estadoInforme = (String) request.getAttribute(
+                                                        "estadoInforme_" + s.getIdSolicitud()
+                                                );
+                                            %>
 
-                                                <button type="submit"
-                                                        class="btn btn-culminar"
-                                                        onclick="return confirm('¿Estás seguro de culminar esta solicitud? No se podrán registrar más actividades.');">
-                                                    Culminar
-                                                </button>
+                                            <% if (esCoordinador) { %>
 
-                                            </form>
+                                            <% if ("en proceso".equalsIgnoreCase(s.getEstado())) {%>
+
+                                            <a href="${pageContext.request.contextPath}/culminarSolicitud?idSolicitudCulminar=<%= s.getIdSolicitud()%>"
+                                               class="btn btn-culminar">
+                                                Culminar
+                                            </a>
+
+                                            <% } else if ("finalizada".equalsIgnoreCase(s.getEstado())) { %>
+
+                                            <% if ("pendiente".equalsIgnoreCase(estadoInforme)) {%>
+
+                                            <a href="${pageContext.request.contextPath}/informes/enviar?idSolicitud=<%= s.getIdSolicitud()%>"
+                                               class="btn btn-informe">
+                                                Enviar informe
+                                            </a>
+
+                                            <% } else if ("enviado".equalsIgnoreCase(estadoInforme)) { %>
+
+                                            <span class="estado-informe enviado">
+                                                &#10003; Informe enviado
+                                            </span>
+
+                                            <% } else if ("enviando".equalsIgnoreCase(estadoInforme)) { %>
+
+                                            <span class="estado-informe procesando">
+                                                Envío en proceso
+                                            </span>
+
+                                            <% } else if ("error_envio".equalsIgnoreCase(estadoInforme)) { %>
+
+                                            <span class="estado-informe error-envio">
+                                                Revisar envío
+                                            </span>
+
+                                            <% } else { %>
+
+                                            <span class="estado-informe sin-informe">
+                                                Sin informe técnico
+                                            </span>
+
                                             <% } %>
+
+                                            <% } %>
+
+                                            <% } %>
+
+
 
                                         </div>
                                     </td>
@@ -724,7 +817,7 @@
                                 </tr>
 
                                 <%  }
-                        }%>
+                                    }%>
 
                             </tbody>
                         </table>

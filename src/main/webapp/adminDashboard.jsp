@@ -384,6 +384,7 @@
                 <a class="action" href="listaUsuarios"><i class="fas fa-users-cog"></i>Gestión de Usuarios</a>
                 <a class="action" href="registrarColaborador"><i class="fas fa-users"></i> Registrar colaborador</a>
                 <a class="action" href="solicitudes"><i class="fas fa-list"></i> Lista de solicitudes</a>
+                <a class="action" href="cotizaciones/lista"><i class="fas fa-file-invoice-dollar"></i>Cotizaciones</a>
             </nav>
             <footer class="foot">© 2026 CREINFOR S.A.C. · Sistema de Gestión de Soporte Técnico</footer>
         </main>

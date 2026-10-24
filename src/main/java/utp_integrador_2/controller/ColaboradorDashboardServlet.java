@@ -8,6 +8,7 @@ import utp_integrador_2.facade.ActividadFacade;
 import utp_integrador_2.DTO.ActividadDTO;
 import utp_integrador_2.DAO.ColaboradorDAO;
 import utp_integrador_2.DAO.SolicitudDAO;
+import utp_integrador_2.DAO.InformeTecnicoDAO;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Date;
-import java.util.ArrayList; 
+import java.util.ArrayList;
 
 @WebServlet("/colaboradorDashboard")
 public class ColaboradorDashboardServlet extends HttpServlet {
@@ -30,13 +31,16 @@ public class ColaboradorDashboardServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-    
+        
+// Interpretar correctamente las tildes y la ñ
+        request.setCharacterEncoding("UTF-8");
+
         String idSolicitudParam = request.getParameter("idSolicitud");
         if (idSolicitudParam != null && !idSolicitudParam.isEmpty()) {
-            
+
             registrarActividad(request, response);
         } else {
-         
+
             processRequest(request, response);
         }
     }
@@ -61,12 +65,14 @@ public class ColaboradorDashboardServlet extends HttpServlet {
         try (Connection connection = BDConnection.getConnection()) {
             ColaboradorDAO colaboradorDAO = new ColaboradorDAO(connection);
             SolicitudDAO solicitudDAO = new SolicitudDAO(connection);
+            InformeTecnicoDAO informeDAO
+                    = new InformeTecnicoDAO(connection);
 
             idColaboradorLogeado = colaboradorDAO.obtenerIdColaboradorPorEmail(usuario.getEmail());
             if (idColaboradorLogeado == -1) {
-                
+
                 request.setAttribute("mensajeError", "Error: Colaborador no encontrado para el usuario actual.");
-               
+
             } else {
                 request.setAttribute("idColaboradorLogeado", idColaboradorLogeado);
 
@@ -79,29 +85,32 @@ public class ColaboradorDashboardServlet extends HttpServlet {
 
                 // Para cada solicitud, verificar si el colaborador logeado es coordinador de esa solicitud
                 for (Solicitud s : solicitudes) {
-                    boolean esCoordinador = solicitudDAO.esColaboradorCoordinadorDeSolicitud(s.getIdSolicitud(), idColaboradorLogeado);
-                    
-                    request.setAttribute("esCoordinador_" + s.getIdSolicitud(), esCoordinador);
+                    int idSolicitud = s.getIdSolicitud();
+
+                    boolean esCoordinador = solicitudDAO.esColaboradorCoordinadorDeSolicitud(idSolicitud, idColaboradorLogeado);
+                    request.setAttribute("esCoordinador_" + idSolicitud, esCoordinador);
+
+                    // Consultar estado del informe técnico
+                    String estadoInforme = informeDAO.obtenerEstadoEnvio(idSolicitud);
+                    request.setAttribute("estadoInforme_" + idSolicitud, estadoInforme);
                 }
             }
 
             request.setAttribute("solicitudes", solicitudes);
 
-          
-
         } catch (Exception e) {
             e.printStackTrace();
             request.setAttribute("mensajeError", "Error al cargar el dashboard: " + e.getMessage());
-          
+
         } finally {
-            
+
             request.getRequestDispatcher("colaboradorDashboard.jsp").forward(request, response);
         }
     }
 
     private void registrarActividad(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         HttpSession session = request.getSession(false);
-        Usuario usuario = (Usuario) session.getAttribute("usuario"); 
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
 
         try {
             int idSolicitud = Integer.parseInt(request.getParameter("idSolicitud"));
@@ -134,10 +143,9 @@ public class ColaboradorDashboardServlet extends HttpServlet {
 
                 actividadFacade.registrarActividad(dto);
 
-                SolicitudFacade solicitudFacade = new SolicitudFacade(connection);
-                solicitudFacade.actualizarEstadoSolicitud(idSolicitud, "en proceso");
-
-                request.setAttribute("mensajeExito", "Actividad registrada exitosamente.");
+                request.setAttribute(
+                        "mensajeExito",
+                        "Actividad registrada exitosamente.");
             }
 
         } catch (NumberFormatException e) {
