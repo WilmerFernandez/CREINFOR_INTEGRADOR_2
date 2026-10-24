@@ -567,6 +567,27 @@
                 background: #edf0f4;
                 color: #718096;
             }
+
+
+            /* BOTÓN PARA REINTENTAR ENVÍO */
+
+            .btn-reintentar-informe {
+                display: inline-block;
+                background: #e9a23b;
+                color: #3d2908;
+                padding: 10px 13px;
+                border-radius: 7px;
+                text-decoration: none;
+                font-size: 12px;
+                font-weight: 650;
+                transition: background 0.2s ease;
+            }
+
+            .btn-reintentar-informe:hover {
+                background: #d68a20;
+                color: #ffffff;
+            }
+
         </style>
     </head>
 
@@ -791,11 +812,15 @@
                                                 Envío en proceso
                                             </span>
 
-                                            <% } else if ("error_envio".equalsIgnoreCase(estadoInforme)) { %>
 
-                                            <span class="estado-informe error-envio">
-                                                Revisar envío
-                                            </span>
+                                            <% } else if ("error_envio".equalsIgnoreCase(estadoInforme)) {%>
+
+                                            <a href="${pageContext.request.contextPath}/informes/enviar?idSolicitud=<%= s.getIdSolicitud()%>"
+                                               class="btn btn-reintentar-informe"
+                                               title="Volver a intentar el envío del informe técnico">
+                                                &#8635; Reintentar envío
+                                            </a>
+
 
                                             <% } else { %>
 
