@@ -1,4 +1,3 @@
-
 package utp_integrador_2.controller;
 
 import utp_integrador_2.DAO.BDConnection;
@@ -29,8 +28,8 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
             return null;
         }
 
-        Usuario usuario =
-                (Usuario) session.getAttribute("usuario");
+        Usuario usuario
+                = (Usuario) session.getAttribute("usuario");
 
         return usuario != null
                 && "colaborador".equalsIgnoreCase(
@@ -54,14 +53,14 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
             Usuario usuario,
             int idSolicitud) throws Exception {
 
-        SolicitudDAO solicitudDAO =
-                new SolicitudDAO(connection);
+        SolicitudDAO solicitudDAO
+                = new SolicitudDAO(connection);
 
-        ColaboradorDAO colaboradorDAO =
-                new ColaboradorDAO(connection);
+        ColaboradorDAO colaboradorDAO
+                = new ColaboradorDAO(connection);
 
-        int idColaborador =
-                colaboradorDAO.obtenerIdColaboradorPorEmail(
+        int idColaborador
+                = colaboradorDAO.obtenerIdColaboradorPorEmail(
                         usuario.getEmail());
 
         if (idColaborador <= 0
@@ -72,8 +71,8 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
                     "Solo el coordinador puede enviar el informe.");
         }
 
-        Solicitud solicitud =
-                solicitudDAO.obtenerSolicitudPorId(idSolicitud);
+        Solicitud solicitud
+                = solicitudDAO.obtenerSolicitudPorId(idSolicitud);
 
         if (solicitud == null
                 || !"finalizada".equalsIgnoreCase(
@@ -104,17 +103,17 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
         try {
             int idSolicitud = obtenerId(request);
 
-            try (Connection connection =
-                    BDConnection.getConnection()) {
+            try (Connection connection
+                    = BDConnection.getConnection()) {
 
                 Solicitud solicitud = validarAcceso(
                         connection, usuario, idSolicitud);
 
-                InformeTecnicoDAO dao =
-                        new InformeTecnicoDAO(connection);
+                InformeTecnicoDAO dao
+                        = new InformeTecnicoDAO(connection);
 
-                String estado =
-                        dao.obtenerEstadoEnvio(idSolicitud);
+                String estado
+                        = dao.obtenerEstadoEnvio(idSolicitud);
 
                 if (estado == null) {
                     response.sendError(404,
@@ -122,9 +121,11 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
                     return;
                 }
 
-                if (!"pendiente".equals(estado)) {
+                if (!"pendiente".equals(estado)
+                        && !"error_envio".equals(estado)) {
+
                     response.sendError(409,
-                            "El informe no está pendiente de envío. "
+                            "Este informe no está disponible para envío. "
                             + "Estado actual: " + estado);
                     return;
                 }
@@ -175,14 +176,13 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
 
         // Consumir el token para que un mismo formulario
         // no pueda enviarse dos veces.
-        String tokenRecibido =
-                request.getParameter("tokenEnvioInforme");
+        String tokenRecibido
+                = request.getParameter("tokenEnvioInforme");
 
         boolean tokenValido;
 
         synchronized (session) {
-            String tokenGuardado = (String)
-                    session.getAttribute("tokenEnvioInforme");
+            String tokenGuardado = (String) session.getAttribute("tokenEnvioInforme");
 
             tokenValido = tokenGuardado != null
                     && tokenGuardado.equals(tokenRecibido);
@@ -211,20 +211,20 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
         boolean reservado = false;
         boolean aceptadoPorSMTP = false;
 
-        try (Connection connection =
-                BDConnection.getConnection()) {
+        try (Connection connection
+                = BDConnection.getConnection()) {
 
             Solicitud solicitud = validarAcceso(
                     connection, usuario, idSolicitud);
 
-            InformeTecnicoDAO informeDAO =
-                    new InformeTecnicoDAO(connection);
+            InformeTecnicoDAO informeDAO
+                    = new InformeTecnicoDAO(connection);
 
-            SolicitudDAO solicitudDAO =
-                    new SolicitudDAO(connection);
+            SolicitudDAO solicitudDAO
+                    = new SolicitudDAO(connection);
 
-            String emailCliente =
-                    solicitudDAO.obtenerEmailUsuarioSolicitante(
+            String emailCliente
+                    = solicitudDAO.obtenerEmailUsuarioSolicitante(
                             idSolicitud);
 
             if (emailCliente == null
@@ -234,12 +234,15 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
                         "El solicitante no tiene correo registrado.");
             }
 
-            if (!"pendiente".equals(
-                    informeDAO.obtenerEstadoEnvio(idSolicitud))) {
+            String estadoEnvio
+                    = informeDAO.obtenerEstadoEnvio(idSolicitud);
+
+            if (!"pendiente".equals(estadoEnvio)
+                    && !"error_envio".equals(estadoEnvio)) {
 
                 throw new IllegalStateException(
-                        "El informe ya fue enviado "
-                        + "o requiere revisión.");
+                        "El informe no está disponible para envío. "
+                        + "Estado actual: " + estadoEnvio);
             }
 
             // Crear PDF utilizando el informe real
@@ -254,12 +257,12 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
                         "Otro proceso ya tomó este informe.");
             }
 
-            String asunto =
-                    "CREINFOR - Informe técnico final - Solicitud #"
+            String asunto
+                    = "CREINFOR - Informe técnico final - Solicitud #"
                     + idSolicitud;
 
-            String mensaje =
-                    "Estimado cliente:\n\n"
+            String mensaje
+                    = "Estimado cliente:\n\n"
                     + "Le informamos que la solicitud #"
                     + idSolicitud + " ha sido culminada.\n\n"
                     + "Adjuntamos el informe técnico final, "
@@ -282,8 +285,8 @@ public class EnviarInformeTecnicoServlet extends HttpServlet {
             } finally {
                 // El estado se conserva incluso cuando
                 // el resultado SMTP es incierto.
-                boolean actualizado =
-                        informeDAO.finalizarEnvio(
+                boolean actualizado
+                        = informeDAO.finalizarEnvio(
                                 idSolicitud, aceptadoPorSMTP);
 
                 if (!actualizado) {

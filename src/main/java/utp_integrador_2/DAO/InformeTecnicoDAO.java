@@ -169,11 +169,14 @@ public class InformeTecnicoDAO {
                 + "ON s.id_solicitud = i.id_solicitud "
                 + "SET i.estado_envio = 'enviando' "
                 + "WHERE i.id_solicitud = ? "
-                + "AND i.estado_envio = 'pendiente' "
+                + "AND i.estado_envio IN ('pendiente', 'error_envio') "
                 + "AND s.estado = 'finalizada'";
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (PreparedStatement ps
+                = connection.prepareStatement(sql)) {
+
             ps.setInt(1, idSolicitud);
+
             return ps.executeUpdate() == 1;
         }
     }
