@@ -15,10 +15,11 @@ public class SolicitudServlet extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+        request.setCharacterEncoding("UTF-8");
         int idUsuario = Integer.parseInt(request.getParameter("idUsuario"));
         String tipoSolicitud = request.getParameter("tipoSolicitud");
         String motivo = request.getParameter("motivo");
-
+        
         SolicitudDTO dto = SolicitudDTO.builder()
                 .idUsuario(idUsuario)
                 .tipoSolicitud(tipoSolicitud)
