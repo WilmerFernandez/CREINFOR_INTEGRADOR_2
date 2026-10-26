@@ -1,4 +1,3 @@
-
 package utp_integrador_2.controller;
 
 import utp_integrador_2.DAO.BDConnection;
@@ -32,47 +31,47 @@ public class OlvidePasswordServlet extends HttpServlet {
 
         String email = request.getParameter("email");
 
-        String mensaje =
-                "Si el correo está registrado y la cuenta "
+        String mensaje
+                = "Si el correo está registrado y la cuenta "
                 + "está activada, recibirás un enlace "
                 + "para restablecer tu contraseña.";
 
-        try (Connection connection =
-                BDConnection.getConnection()) {
+        try (Connection connection
+                = BDConnection.getConnection()) {
 
             if (email != null && !email.isBlank()) {
 
-                UsuarioDAO usuarioDAO =
-                        new UsuarioDAO(connection);
+                UsuarioDAO usuarioDAO
+                        = new UsuarioDAO(connection);
 
-                Usuario usuario =
-                        usuarioDAO.buscarPorEmail(email.trim());
+                Usuario usuario
+                        = usuarioDAO.buscarPorEmail(email.trim());
 
                 if (usuario != null
                         && usuario.isCuentaActivada()) {
 
                     // Generar token de recuperación
-                    String tokenGenerado =
-                            UUID.randomUUID().toString();
+                    String tokenGenerado
+                            = UUID.randomUUID().toString();
 
-                    TokenRecuperacion token =
-                            TokenRecuperacion.builder()
-                            .idUsuario(usuario.getIdUsuario())
-                            .token(tokenGenerado)
-                            .fechaExpiracion(
-                                    LocalDateTime.now()
-                                    .plusMinutes(30))
-                            .usado(false)
-                            .build();
+                    TokenRecuperacion token
+                            = TokenRecuperacion.builder()
+                                    .idUsuario(usuario.getIdUsuario())
+                                    .token(tokenGenerado)
+                                    .fechaExpiracion(
+                                            LocalDateTime.now()
+                                                    .plusMinutes(30))
+                                    .usado(false)
+                                    .build();
 
-                    TokenRecuperacionDAO tokenDAO =
-                            new TokenRecuperacionDAO(connection);
+                    TokenRecuperacionDAO tokenDAO
+                            = new TokenRecuperacionDAO(connection);
 
                     tokenDAO.insertar(token);
 
                     // Construir URL pública de CREINFOR
-                    String baseUrl =
-                            System.getenv("APP_BASE_URL");
+                    String baseUrl
+                            = System.getenv("APP_BASE_URL");
 
                     if (baseUrl == null
                             || baseUrl.isBlank()) {
@@ -81,8 +80,8 @@ public class OlvidePasswordServlet extends HttpServlet {
                                 + "://"
                                 + request.getServerName();
 
-                        int puerto =
-                                request.getServerPort();
+                        int puerto
+                                = request.getServerPort();
 
                         if (puerto != 80 && puerto != 443) {
                             baseUrl += ":" + puerto;
@@ -100,11 +99,11 @@ public class OlvidePasswordServlet extends HttpServlet {
                                     StandardCharsets.UTF_8);
 
                     // Enviar recuperación por correo
-                    String asunto =
-                            "Recuperación de contraseña - CREINFOR";
+                    String asunto
+                            = "Recuperación de contraseña - CREINFOR";
 
-                    String contenido =
-                            "Hola, " + usuario.getNombres()
+                    String contenido
+                            = "Hola, " + usuario.getNombres()
                             + "\n\n"
                             + "Recibimos una solicitud para "
                             + "restablecer tu contraseña "
@@ -126,10 +125,10 @@ public class OlvidePasswordServlet extends HttpServlet {
                         );
 
                     } catch (Exception e) {
-                        // No mostrar detalles técnicos al usuario
                         log("Error al enviar correo "
                                 + "de recuperación", e);
                     }
+
                 }
             }
 
