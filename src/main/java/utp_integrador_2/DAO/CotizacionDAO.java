@@ -372,34 +372,42 @@ public class CotizacionDAO {
         }
     }
 
-    public List<Solicitud> listarSolicitudesParaCotizar()
-            throws SQLException {
+    
+public List<Solicitud> listarSolicitudesParaCotizar()
+        throws SQLException {
 
-        List<Solicitud> lista = new ArrayList<>();
+    List<Solicitud> lista = new ArrayList<>();
 
-        String sql = "SELECT s.* FROM solicitudes s "
-                + "WHERE s.estado = 'pendiente' "
-                + "AND NOT EXISTS ("
-                + "SELECT 1 FROM cotizaciones c "
-                + "WHERE c.id_solicitud = s.id_solicitud "
-                + "AND c.estado IN ("
-                + "'borrador', 'enviando', 'enviada', "
-                + "'error_envio', 'aprobada')"
-                + ") "
-                + "ORDER BY s.id_solicitud DESC";
+    String sql = "SELECT s.*, "
+            + "CONCAT_WS(' ', u.nombres, u.apellidos) AS nombre_cliente "
+            + "FROM solicitudes s "
+            + "INNER JOIN usuarios u "
+            + "ON s.id_usuario = u.id_usuario "
+            + "WHERE s.estado = 'pendiente' "
+            + "AND NOT EXISTS ("
+            + "SELECT 1 FROM cotizaciones c "
+            + "WHERE c.id_solicitud = s.id_solicitud "
+            + "AND c.estado IN ("
+            + "'borrador', 'enviando', 'enviada', "
+            + "'error_envio', 'aprobada')"
+            + ") "
+            + "ORDER BY s.id_solicitud DESC";
 
-        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+    try (PreparedStatement ps = connection.prepareStatement(sql);
+         ResultSet rs = ps.executeQuery()) {
 
-            while (rs.next()) {
-                lista.add(Solicitud.builder()
-                        .idSolicitud(rs.getInt("id_solicitud"))
-                        .tipoSolicitud(rs.getString("tipo_solicitud"))
-                        .motivo(rs.getString("motivo"))
-                        .build());
-            }
+        while (rs.next()) {
+            lista.add(Solicitud.builder()
+                    .idSolicitud(rs.getInt("id_solicitud"))
+                    .tipoSolicitud(rs.getString("tipo_solicitud"))
+                    .motivo(rs.getString("motivo"))
+                    .nombreCliente(rs.getString("nombre_cliente"))
+                    .build());
         }
-
-        return lista;
     }
+
+    return lista;
+}
+
 
 }

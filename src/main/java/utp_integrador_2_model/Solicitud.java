@@ -14,4 +14,7 @@ public class Solicitud {
     private String motivo;
     private Date fechaRegistro;
     private String estado;  // pendiente, en proceso, finalizada
+    
+    // Dato adicional para mostrar el cliente en las cotizaciones
+    private String nombreCliente;
 }
