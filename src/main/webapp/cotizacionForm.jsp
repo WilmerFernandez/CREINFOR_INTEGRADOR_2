@@ -255,6 +255,9 @@
                 }
             }
         </style>
+
+        <link rel="stylesheet"
+              href="https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/css/tom-select.css">
     </head>
 
     <body>
@@ -299,9 +302,8 @@
                             <div class="field">
                                 <label for="idSolicitud">Solicitud</label>
 
-                                <select name="idSolicitud" id="idSolicitud" required>
+                                <select id="solicitudBuscador" name="idSolicitud" required>
                                     <option value="">Seleccione una solicitud</option>
-
 
                                     <c:forEach var="s" items="${solicitudes}">
                                         <option value="${s.idSolicitud}">
@@ -314,9 +316,8 @@
                                             <c:out value="${s.motivo}"/>
                                         </option>
                                     </c:forEach>
-
-
                                 </select>
+
                             </div>
 
                             <div class="field">
@@ -537,6 +538,25 @@
 
             calcularTotal();
         </script>
+
+
+
+        <script src="https://cdn.jsdelivr.net/npm/tom-select@2.6.2/dist/js/tom-select.complete.min.js"></script>
+
+        <script>
+            document.addEventListener("DOMContentLoaded", function () {
+
+                new TomSelect("#solicitudBuscador", {
+                    create: false,
+                    maxItems: 1,
+                    searchField: ["text"],
+                    placeholder: "Escribe el ID, cliente o tipo...",
+                    allowEmptyOption: false
+                });
+
+            });
+        </script>
+
 
     </body>
 </html>
