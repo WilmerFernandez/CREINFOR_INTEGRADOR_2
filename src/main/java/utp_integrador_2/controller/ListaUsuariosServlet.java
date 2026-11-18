@@ -1,11 +1,14 @@
+
 package utp_integrador_2.controller;
 
 import utp_integrador_2.DAO.UsuarioDAO;
 import utp_integrador_2_model.Usuario;
 import utp_integrador_2.DAO.BDConnection;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
@@ -15,26 +18,72 @@ import javax.servlet.http.HttpSession;
 
 @WebServlet("/listaUsuarios")
 public class ListaUsuariosServlet extends HttpServlet {
+
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+    protected void doGet(
+            HttpServletRequest request,
+            HttpServletResponse response)
             throws ServletException, IOException {
+
         HttpSession session = request.getSession(false);
-        if (session == null || !(session.getAttribute("usuario") instanceof Usuario)) {
-            response.sendRedirect(request.getContextPath() + "/login.jsp");
+
+        if (session == null
+                || !(session.getAttribute("usuario") instanceof Usuario)) {
+
+            response.sendRedirect(
+                    request.getContextPath() + "/login.jsp");
             return;
         }
-        Usuario actual = (Usuario) session.getAttribute("usuario");
+
+        Usuario actual =
+                (Usuario) session.getAttribute("usuario");
+
         if (!"admin".equalsIgnoreCase(actual.getTipoUsuario())) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
+
+        String modulo = request.getParameter("modulo");
+
         try (Connection cn = BDConnection.getConnection()) {
+
             UsuarioDAO dao = new UsuarioDAO(cn);
-            request.setAttribute("usuarios", dao.listarTodos());
-            request.getRequestDispatcher("/listaUsuarios.jsp").forward(request, response);
+
+            if ("clientes".equalsIgnoreCase(modulo)) {
+
+                request.setAttribute(
+                        "usuarios",
+                        dao.listarClientes()
+                );
+
+            } else if ("personal".equalsIgnoreCase(modulo)) {
+
+                request.setAttribute(
+                        "usuarios",
+                        dao.listarPersonal()
+                );
+
+            } else {
+
+                request.setAttribute(
+                        "usuarios",
+                        dao.listarTodos()
+                );
+            }
+
+            request.setAttribute("modulo", modulo);
+
+            request.getRequestDispatcher(
+                    "/listaUsuarios.jsp"
+            ).forward(request, response);
+
         } catch (SQLException e) {
-            getServletContext().log("Error al listar usuarios", e);
-            throw new ServletException("No se pudo cargar la lista de usuarios.", e);
+
+            getServletContext().log(
+                    "Error al listar usuarios", e);
+
+            throw new ServletException(
+                    "No se pudo cargar la lista de usuarios.", e);
         }
     }
 }

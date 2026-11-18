@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Registrar Usuario - CREINFOR</title>
+    <title>Registrar cuenta - CREINFOR</title>
 
     <style>
         * {
@@ -275,7 +275,13 @@
 
     <div class="form-content">
 
-        <h2 class="form-title">Registrar nuevo usuario</h2>
+        <%
+            String modulo = (String) request.getAttribute("modulo");
+            if (modulo == null) modulo = request.getParameter("modulo");
+            boolean esPersonal = "personal".equalsIgnoreCase(modulo);
+            modulo = esPersonal ? "personal" : "clientes";
+        %>
+        <h2 class="form-title"><%= esPersonal ? "Registrar nuevo personal" : "Registrar nuevo cliente" %></h2>
 
         <div class="info-box">
             El administrador crea la cuenta, pero no establece la contraseña.
@@ -323,23 +329,17 @@
                 >
             </div>
 
+            <input type="hidden" name="modulo" value="<%= modulo %>">
+            <% if (esPersonal) { %>
             <div class="form-group">
-                <label for="tipoUsuario">Tipo de usuario</label>
-
-                <select
-                    id="tipoUsuario"
-                    name="tipoUsuario"
-                    required
-                >
-                    <option value="" disabled selected>
-                        Seleccione un tipo de usuario
-                    </option>
-
-                    <option value="cliente">Cliente</option>
+                <label for="tipoUsuario">Tipo de personal</label>
+                <select id="tipoUsuario" name="tipoUsuario" required>
+                    <option value="" disabled selected>Seleccione el tipo de cuenta</option>
                     <option value="colaborador">Colaborador</option>
                     <option value="admin">Administrador</option>
                 </select>
             </div>
+            <% } %>
 
             <!-- BOTÓN DE REGISTRO -->
             <button
@@ -348,7 +348,7 @@
                 class="btn-register"
             >
                 <span class="spinner" aria-hidden="true"></span>
-                <span id="textoBoton">Crear usuario</span>
+                <span id="textoBoton"><%= esPersonal ? "Crear cuenta de personal" : "Crear cliente" %></span>
             </button>
 
             <!-- MENSAJE DE ESPERA -->
@@ -385,10 +385,10 @@
 
         <div class="volver-container">
             <a
-                href="${pageContext.request.contextPath}/adminDashboard.jsp"
+                href="${pageContext.request.contextPath}/listaUsuarios?modulo=<%= modulo %>"
                 class="volver"
             >
-                Volver al panel administrador
+                Volver al listado
             </a>
         </div>
 
@@ -424,7 +424,7 @@
             boton.disabled = true;
             boton.classList.add("cargando");
             textoBoton.textContent =
-                "Registrando usuario y enviando correo...";
+                "Registrando cuenta y enviando correo...";
 
             mensajeEspera.hidden = false;
         });
@@ -436,7 +436,7 @@
                 enviando = false;
                 boton.disabled = false;
                 boton.classList.remove("cargando");
-                textoBoton.textContent = "Crear usuario";
+                textoBoton.textContent = "<%= esPersonal ? "Crear cuenta de personal" : "Crear cliente" %>";
                 mensajeEspera.hidden = true;
             }
 

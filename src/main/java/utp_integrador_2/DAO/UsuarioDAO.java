@@ -196,27 +196,85 @@ public class UsuarioDAO {
 
         return false;
     }
-    
-    public List<Usuario> listarTodos() throws SQLException {
-    List<Usuario> usuarios = new ArrayList<>();
-    String sql = "SELECT id_usuario, nombres, apellidos, email, tipo_usuario, cuenta_activada "
-            + "FROM usuarios ORDER BY id_usuario DESC";
 
-    try (PreparedStatement ps = connection.prepareStatement(sql);
-         ResultSet rs = ps.executeQuery()) {
-        while (rs.next()) {
-            Usuario u = Usuario.builder()
-                .idUsuario(rs.getInt("id_usuario"))
-                .nombres(rs.getString("nombres"))
-                .apellidos(rs.getString("apellidos"))
-                .email(rs.getString("email"))
-                .tipoUsuario(rs.getString("tipo_usuario"))
-                .cuentaActivada(rs.getBoolean("cuenta_activada"))
-                .build();
-            usuarios.add(u);
+    public List<Usuario> listarTodos() throws SQLException {
+        List<Usuario> usuarios = new ArrayList<>();
+        String sql = "SELECT id_usuario, nombres, apellidos, email, tipo_usuario, cuenta_activada "
+                + "FROM usuarios ORDER BY id_usuario DESC";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                Usuario u = Usuario.builder()
+                        .idUsuario(rs.getInt("id_usuario"))
+                        .nombres(rs.getString("nombres"))
+                        .apellidos(rs.getString("apellidos"))
+                        .email(rs.getString("email"))
+                        .tipoUsuario(rs.getString("tipo_usuario"))
+                        .cuentaActivada(rs.getBoolean("cuenta_activada"))
+                        .build();
+                usuarios.add(u);
+            }
         }
+        return usuarios;
     }
-    return usuarios;
-}
+
+    public List<Usuario> listarClientes() throws SQLException {
+
+        List<Usuario> clientes = new ArrayList<>();
+
+        String sql = "SELECT id_usuario, nombres, apellidos, email, "
+                + "tipo_usuario, cuenta_activada "
+                + "FROM usuarios WHERE tipo_usuario = 'cliente' "
+                + "ORDER BY id_usuario DESC";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+
+                Usuario usuario = Usuario.builder()
+                        .idUsuario(rs.getInt("id_usuario"))
+                        .nombres(rs.getString("nombres"))
+                        .apellidos(rs.getString("apellidos"))
+                        .email(rs.getString("email"))
+                        .tipoUsuario(rs.getString("tipo_usuario"))
+                        .cuentaActivada(rs.getBoolean("cuenta_activada"))
+                        .build();
+
+                clientes.add(usuario);
+            }
+        }
+
+        return clientes;
+    }
+
+    public List<Usuario> listarPersonal() throws SQLException {
+
+        List<Usuario> personal = new ArrayList<>();
+
+        String sql = "SELECT id_usuario, nombres, apellidos, email, "
+                + "tipo_usuario, cuenta_activada "
+                + "FROM usuarios "
+                + "WHERE tipo_usuario IN ('admin', 'colaborador') "
+                + "ORDER BY id_usuario DESC";
+
+        try (PreparedStatement ps = connection.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+
+            while (rs.next()) {
+
+                Usuario usuario = Usuario.builder()
+                        .idUsuario(rs.getInt("id_usuario"))
+                        .nombres(rs.getString("nombres"))
+                        .apellidos(rs.getString("apellidos"))
+                        .email(rs.getString("email"))
+                        .tipoUsuario(rs.getString("tipo_usuario"))
+                        .cuentaActivada(rs.getBoolean("cuenta_activada"))
+                        .build();
+
+                personal.add(usuario);
+            }
+        }
+
+        return personal;
+    }
 
 }
