@@ -5,7 +5,7 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Gestión de Usuarios | CREINFOR</title>
+        <title>Administración de cuentas | CREINFOR</title>
         <style>
             * {
                 box-sizing: border-box;
@@ -82,7 +82,11 @@
                 font-size:14px;
                 font-weight:bold;
             }
-            .btn { border:0; cursor:pointer; font-family:inherit; }
+            .btn {
+                border:0;
+                cursor:pointer;
+                font-family:inherit;
+            }
             .btn:hover {
                 background:#125fa9;
             }
@@ -231,42 +235,115 @@
             }
 
             /* VENTANA FLOTANTE DE REGISTRO */
-            body.modal-abierto { overflow: hidden; }
-            .modal-registro[hidden] { display:none; }
+            body.modal-abierto {
+                overflow: hidden;
+            }
+            .modal-registro[hidden] {
+                display:none;
+            }
             .modal-registro {
-                position:fixed; inset:0; z-index:1000;
-                display:flex; justify-content:center; align-items:center;
-                padding:20px; background:rgba(12,31,48,.65);
+                position:fixed;
+                inset:0;
+                z-index:1000;
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                padding:20px;
+                background:rgba(12,31,48,.65);
             }
             .modal-panel {
-                width:min(100%,570px); height:min(90vh,820px);
-                display:flex; flex-direction:column;
-                background:#fff; border-radius:16px; overflow:hidden;
+                width:min(100%,570px);
+                height:min(90vh,820px);
+                display:flex;
+                flex-direction:column;
+                background:#fff;
+                border-radius:16px;
+                overflow:hidden;
                 box-shadow:0 24px 72px rgba(0,0,0,.30);
             }
             .modal-barra {
-                background:#153b5b; color:#fff;
-                display:flex; justify-content:space-between;
-                align-items:center; padding:13px 18px; gap:12px;
+                background:#153b5b;
+                color:#fff;
+                display:flex;
+                justify-content:space-between;
+                align-items:center;
+                padding:13px 18px;
+                gap:12px;
             }
-            .modal-barra h3 { font-size:16px; margin:0; }
+            .modal-barra h3 {
+                font-size:16px;
+                margin:0;
+            }
             .modal-cerrar {
-                background:rgba(255,255,255,.13); color:white;
+                background:rgba(255,255,255,.13);
+                color:white;
                 border:1px solid rgba(255,255,255,.3);
-                border-radius:8px; padding:7px 12px;
-                font-size:20px; line-height:1; cursor:pointer;
+                border-radius:8px;
+                padding:7px 12px;
+                font-size:20px;
+                line-height:1;
+                cursor:pointer;
             }
-            .modal-cerrar:hover { background:#c62828; }
-            .iframe-registro { flex:1; width:100%; border:0; background:#eef3f7; }
-            .modal-pie { padding:9px 16px; text-align:center; font-size:12px; color:#718697; }
+            .modal-cerrar:hover {
+                background:#c62828;
+            }
+            .iframe-registro {
+                flex:1;
+                width:100%;
+                border:0;
+                background:#eef3f7;
+            }
+            .modal-pie {
+                padding:9px 16px;
+                text-align:center;
+                font-size:12px;
+                color:#718697;
+            }
             @media(max-width:600px) {
-                .modal-registro { padding:8px; }
-                .modal-panel { height:96vh; }
+                .modal-registro {
+                    padding:8px;
+                }
+                .modal-panel {
+                    height:96vh;
+                }
             }
+
+
+
+            .btn-clientes {
+                background: #1976d2;
+            }
+
+            .btn-clientes:hover {
+                background: #125fa9;
+            }
+
+            .btn-personal {
+                background: #198754;
+            }
+
+            .btn-personal:hover {
+                background: #146c43;
+            }
+
+            .btn-registro {
+                background: #153b5b;
+            }
+
+            .btn-registro:hover {
+                background: #24577d;
+            }
+
+            .btn-clientes.seleccionado, .btn-personal.seleccionado { box-shadow:0 0 0 3px rgba(21,59,91,.17); outline:2px solid #fff; }
+            .nav-modulos { display:flex; flex-wrap:wrap; gap:9px; }
+            .page-title { flex:1; min-width:220px; }
+            .stat.personal { border-left-color:#198754; }
+            .stat .valor { display:block; }
+            @media(max-width:650px) { .stats { grid-template-columns:repeat(2,minmax(0,1fr)); } .nav-modulos { width:100%; } .nav-modulos .btn { flex:1; text-align:center; } }
         </style>
     </head>
-    
-    
+
+
     <body>
         <header class="header">
             <div class="header-inner">
@@ -274,31 +351,63 @@
                 <a class="back" href="${pageContext.request.contextPath}/adminDashboard">← Volver al panel</a>
             </div>
         </header>
+        <c:set var="esClientes" value="${modulo == 'clientes'}" />
+        <c:set var="esPersonal" value="${modulo == 'personal'}" />
+        <c:set var="titulo" value="${esClientes ? 'Gestión de Clientes' : (esPersonal ? 'Gestión de Personal' : 'Gestión de Usuarios')}" />
+        <c:set var="sustantivo" value="${esClientes ? 'clientes' : (esPersonal ? 'personal' : 'usuarios')}" />
         <main>
             <div class="page-head">
-                <div><h2>Gestión de Usuarios</h2><p class="muted">Consulta las cuentas registradas y su estado de activación.</p></div>
-                <button class="btn" type="button" id="abrirRegistro">+ Registrar nuevo usuario</button>
+                <div class="page-title">
+                    <h2><c:out value="${titulo}"/></h2>
+                    <p class="muted">
+                        <c:choose>
+                            <c:when test="${esClientes}">Administra las cuentas de los clientes que solicitan servicios.</c:when>
+                            <c:when test="${esPersonal}">Consulta las cuentas del personal interno de CREINFOR.</c:when>
+                            <c:otherwise>Consulta las cuentas registradas y su estado de activación.</c:otherwise>
+                        </c:choose>
+                    </p>
+                </div>
+                <nav class="nav-modulos" aria-label="Módulos de administración">
+                    <a class="btn btn-clientes ${esClientes ? 'seleccionado' : ''}"
+                       href="${pageContext.request.contextPath}/listaUsuarios?modulo=clientes">Gestión de Clientes</a>
+                    <a class="btn btn-personal ${esPersonal ? 'seleccionado' : ''}"
+                       href="${pageContext.request.contextPath}/listaUsuarios?modulo=personal">Gestión de Personal</a>
+                    <button class="btn btn-registro" type="button" id="abrirRegistro">
+                        <c:choose>
+                            <c:when test="${esClientes}">+ Registrar nuevo cliente</c:when>
+                            <c:when test="${esPersonal}">+ Registrar nuevo personal</c:when>
+                            <c:otherwise>+ Registrar nuevo usuario</c:otherwise>
+                        </c:choose>
+                    </button>
+                </nav>
             </div>
             <div class="stats">
-                <div class="stat"><small>Total usuarios</small><strong id="total">0</strong></div>
-                <div class="stat"><small>Administradores</small><strong id="admins">0</strong></div>
-                <div class="stat"><small>Clientes</small><strong id="clientes">0</strong></div>
+                <div class="stat"><small>${esClientes ? 'Total de clientes' : (esPersonal ? 'Total de personal' : 'Total de usuarios')}</small><strong id="total">0</strong></div>
+                <div class="stat"><small>${esClientes ? 'Clientes activados' : (esPersonal ? 'Administradores' : 'Administradores')}</small><strong id="dato2">0</strong></div>
+                <div class="stat"><small>${esClientes ? 'Pendientes de activación' : (esPersonal ? 'Colaboradores' : 'Clientes')}</small><strong id="dato3">0</strong></div>
                 <div class="stat"><small>Cuentas activadas</small><strong id="activas">0</strong></div>
             </div>
             <section class="card">
-                <div class="card-title">Usuarios registrados</div>
+                <div class="card-title"><c:out value="${titulo}"/> — cuentas registradas</div>
                 <div class="filters">
-                    <input id="buscar" type="search" placeholder="Buscar por nombre, apellido o correo…" aria-label="Buscar usuario">
-                    <select id="tipoFiltro" aria-label="Filtrar por tipo">
-                        <option value="">Todos los tipos</option><option value="admin">Administrador</option><option value="cliente">Cliente</option><option value="colaborador">Colaborador</option>
-                    </select>
+                    <input id="buscar" type="search" placeholder="Buscar por nombre, apellido o correo…" aria-label="Buscar usuarios">
+                    <c:if test="${not esClientes}">
+                        <select id="tipoFiltro" aria-label="Filtrar por tipo">
+                            <option value="">Todos los tipos</option>
+                            <c:if test="${not esPersonal}"><option value="cliente">Cliente</option></c:if>
+                            <option value="admin">Administrador</option>
+                            <option value="colaborador">Colaborador</option>
+                        </select>
+                    </c:if>
                     <select id="estadoFiltro" aria-label="Filtrar por activación">
-                        <option value="">Todos los estados</option><option value="activa">Activada</option><option value="pendiente">Pendiente de activación</option>
+                        <option value="">Todos los estados</option>
+                        <option value="activa">Activada</option>
+                        <option value="pendiente">Pendiente de activación</option>
                     </select>
                 </div>
                 <div class="table-wrap">
                     <table>
-                        <thead><tr><th>ID</th><th>Usuario</th><th>Correo</th><th>Tipo</th><th>Estado de cuenta</th></tr></thead>
+                        <thead><tr><th>ID</th><th>${esClientes ? 'Cliente' : 'Usuario'}</th><th>Correo</th><th>Tipo</th><th>Estado de cuenta</th></tr></thead>
                         <tbody id="tablaUsuarios">
                             <c:forEach var="u" items="${usuarios}">
                                 <tr data-tipo="${u.tipoUsuario}" data-estado="${u.cuentaActivada ? 'activa' : 'pendiente'}">
@@ -307,11 +416,11 @@
                                     <td><c:out value="${u.email}"/></td>
                                     <td><span class="badge ${u.tipoUsuario == 'admin' ? 'admin' : (u.tipoUsuario == 'colaborador' ? 'colaborador' : 'cliente')}"><c:out value="${u.tipoUsuario}"/></span></td>
                                     <td><c:choose><c:when test="${u.cuentaActivada}"><span class="badge active">Activada</span></c:when><c:otherwise><span class="badge pending">Pendiente</span></c:otherwise></c:choose></td>
-                                        </tr>
+                                </tr>
                             </c:forEach>
                         </tbody>
                     </table>
-                    <p id="sinResultados" class="empty" hidden>No se encontraron usuarios con esos filtros.</p>
+                    <p id="sinResultados" class="empty" hidden>No se encontraron registros con esos filtros.</p>
                 </div>
                 <div class="counter" id="contador"></div>
             </section>
@@ -322,14 +431,14 @@
             <section class="modal-panel" role="dialog" aria-modal="true"
                      aria-labelledby="tituloModalRegistro">
                 <div class="modal-barra">
-                    <h3 id="tituloModalRegistro">Registrar nuevo usuario</h3>
+                    <h3 id="tituloModalRegistro">${esClientes ? 'Registrar nuevo cliente' : (esPersonal ? 'Registrar nuevo personal' : 'Registrar nuevo usuario')}</h3>
                     <button id="cerrarRegistro" type="button" class="modal-cerrar"
                             aria-label="Cerrar formulario">&times;</button>
                 </div>
                 <iframe id="iframeRegistro" class="iframe-registro"
-                        title="Formulario de registro de usuarios"
-                        data-src="${pageContext.request.contextPath}/UsuarioRegistro.jsp"></iframe>
-                <div class="modal-pie">Al cerrar se actualizará la lista de usuarios.</div>
+                        title="Formulario de registro"
+                        data-src="${pageContext.request.contextPath}/UsuarioRegistro.jsp?modulo=${esPersonal ? 'personal' : 'clientes'}"></iframe>
+                <div class="modal-pie">Al cerrar se actualizará el listado.</div>
             </section>
         </div>
         <script>
@@ -338,28 +447,35 @@
             const tipo = document.getElementById('tipoFiltro');
             const estado = document.getElementById('estadoFiltro');
             const cantidad = (predicado) => rows.filter(predicado).length;
-            document.getElementById('total').textContent = rows.length;
-            document.getElementById('admins').textContent = cantidad(r => r.dataset.tipo.toLowerCase() === 'admin');
-            document.getElementById('clientes').textContent = cantidad(r => r.dataset.tipo.toLowerCase() === 'cliente');
-            document.getElementById('activas').textContent = cantidad(r => r.dataset.estado === 'activa');
+            const modulo = '${esClientes ? 'clientes' : (esPersonal ? 'personal' : 'todos')}';
+            const total = rows.length;
+            const activas = cantidad(r => r.dataset.estado === 'activa');
+            document.getElementById('total').textContent = total;
+            document.getElementById('activas').textContent = activas;
+            if (modulo === 'clientes') {
+                document.getElementById('dato2').textContent = activas;
+                document.getElementById('dato3').textContent = total - activas;
+            } else {
+                document.getElementById('dato2').textContent = cantidad(r => r.dataset.tipo === 'admin');
+                document.getElementById('dato3').textContent = cantidad(r => r.dataset.tipo === (modulo === 'personal' ? 'colaborador' : 'cliente'));
+            }
             function filtrar() {
                 const q = buscar.value.trim().toLocaleLowerCase();
-                const t = tipo.value;
+                const t = tipo ? tipo.value : '';
                 const e = estado.value;
                 let visibles = 0;
                 rows.forEach(row => {
                     const match = row.textContent.toLocaleLowerCase().includes(q)
-                            && (!t || row.dataset.tipo.toLowerCase() === t)
-                            && (!e || row.dataset.estado === e);
+                        && (!t || row.dataset.tipo.toLowerCase() === t)
+                        && (!e || row.dataset.estado === e);
                     row.hidden = !match;
-                    if (match)
-                        visibles++;
+                    if (match) visibles++;
                 });
                 document.getElementById('sinResultados').hidden = visibles !== 0;
-                document.getElementById('contador').textContent = `Mostrando ${visibles} de ${rows.length} usuarios`;
+                document.getElementById('contador').textContent = `Mostrando ${visibles} de ${rows.length} registros`;
             }
             buscar.addEventListener('input', filtrar);
-            tipo.addEventListener('change', filtrar);
+            if (tipo) tipo.addEventListener('change', filtrar);
             estado.addEventListener('change', filtrar);
             filtrar();
 
@@ -382,19 +498,22 @@
             function cerrarModalRegistro() {
                 modal.hidden = true;
                 document.body.classList.remove('modal-abierto');
-                if (retornoFoco && retornoFoco.focus) retornoFoco.focus();
+                if (retornoFoco && retornoFoco.focus)
+                    retornoFoco.focus();
                 // Recarga para mostrar cualquier usuario que se haya registrado.
                 window.location.reload();
             }
             abrir.addEventListener('click', abrirModalRegistro);
             cerrar.addEventListener('click', cerrarModalRegistro);
             modal.addEventListener('click', function (event) {
-                if (event.target === modal) cerrarModalRegistro();
+                if (event.target === modal)
+                    cerrarModalRegistro();
             });
             document.addEventListener('keydown', function (event) {
-                if (event.key === 'Escape' && !modal.hidden) cerrarModalRegistro();
+                if (event.key === 'Escape' && !modal.hidden)
+                    cerrarModalRegistro();
                 if (event.key === 'Tab' && !modal.hidden && document.activeElement === cerrar
-                    && event.shiftKey) {
+                        && event.shiftKey) {
                     event.preventDefault();
                     marco.focus();
                 }
