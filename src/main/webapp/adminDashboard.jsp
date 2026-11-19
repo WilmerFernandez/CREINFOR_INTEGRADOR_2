@@ -1,31 +1,54 @@
+
 <%@ page import="java.util.Map,java.util.HashMap" %>
 <%@ page import="utp_integrador_2_model.Usuario" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ page session="true" %>
+<%@ page session="false" %>
+
 <%!
     private String html(String s) {
         if (s == null) {
             return "";
         }
-        return s.replace("&", "&amp;").replace("<", "&lt;")
-                .replace(">", "&gt;").replace("\"", "&quot;")
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
                 .replace("'", "&#39;");
     }
 %>
+
 <%
-    Usuario usuario = (Usuario) session.getAttribute("usuario");
-    if (usuario == null || !"admin".equalsIgnoreCase(usuario.getTipoUsuario())) {
-        response.sendRedirect("login.jsp");
+    response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    response.setHeader("Pragma", "no-cache");
+    response.setDateHeader("Expires", 0);
+
+    javax.servlet.http.HttpSession sesion = request.getSession(false);
+
+    if (sesion == null || !(sesion.getAttribute("usuario") instanceof Usuario)) {
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }
-    Map<String, Integer> estados = (Map<String, Integer>) request.getAttribute("solicitudesPorEstado");
+
+    Usuario usuario = (Usuario) sesion.getAttribute("usuario");
+
+    if (!"admin".equalsIgnoreCase(usuario.getTipoUsuario())) {
+        response.sendError(403);
+        return;
+    }
+
+    Map<String, Integer> estados
+            = (Map<String, Integer>) request.getAttribute("solicitudesPorEstado");
+
     if (estados == null) {
         estados = new HashMap<>();
     }
+
     int pendientes = 0, proceso = 0, finalizadas = 0, otros = 0;
+
     for (Map.Entry<String, Integer> e : estados.entrySet()) {
         String clave = e.getKey() == null ? "" : e.getKey().trim();
         int n = e.getValue() == null ? 0 : Math.max(0, e.getValue());
+
         if (clave.equalsIgnoreCase("Pendiente")) {
             pendientes += n;
         } else if (clave.equalsIgnoreCase("En proceso")) {
@@ -36,8 +59,10 @@
             otros += n;
         }
     }
+
     int total = pendientes + proceso + finalizadas + otros;
 %>
+
 <!DOCTYPE html>
 <html lang="es">
     <head>
@@ -357,7 +382,12 @@
     <body>
         <header class="topbar">
             <div class="brand"><span class="brand-icon"><i class="fas fa-desktop"></i></span><div><strong>CREINFOR</strong><small>Centro de administración</small></div></div>
-            <div class="top-right"><span class="role"><i class="fas fa-user-shield"></i> Administrador</span><a class="exit" href="login.jsp"><i class="fas fa-sign-out-alt"></i> Salir</a></div>
+            <div class="top-right"><span class="role"><i class="fas fa-user-shield"></i> Administrador</span>
+                
+                <a class="exit" href="${pageContext.request.contextPath}/logout">
+                    <i class="fas fa-sign-out-alt"></i> Salir
+                </a>
+            </div>
         </header>
         <main class="container">
             <section class="hero"><div><h1>¡Bienvenido, <%= html(usuario.getNombres())%>!</h1><p>Supervisa las solicitudes y administra el soporte técnico.</p></div><i class="fas fa-chart-line"></i></section>

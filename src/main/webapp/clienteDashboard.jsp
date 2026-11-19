@@ -1,16 +1,35 @@
+
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ page import="utp_integrador_2_model.Usuario" %>
-<%@ page session="true" %>
+<%@ page session="false" %>
 
 <%
-    Usuario usuario = (Usuario) session.getAttribute("usuario");
-    if (usuario == null || !"cliente".equals(usuario.getTipoUsuario())) {
-        response.sendRedirect("login.jsp");
+    response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+    response.setHeader("Pragma", "no-cache");
+    response.setDateHeader("Expires", 0);
+
+    javax.servlet.http.HttpSession sesion = request.getSession(false);
+
+    if (sesion == null ||
+        !(sesion.getAttribute("usuario") instanceof Usuario)) {
+
+        response.sendRedirect(request.getContextPath() + "/login.jsp");
         return;
     }
 
-    String nombres = usuario.getNombres() != null ? usuario.getNombres() : "";
-    String apellidos = usuario.getApellidos() != null ? usuario.getApellidos() : "";
+    Usuario usuario = (Usuario) sesion.getAttribute("usuario");
+
+    if (!"cliente".equalsIgnoreCase(usuario.getTipoUsuario())) {
+        response.sendError(HttpServletResponse.SC_FORBIDDEN);
+        return;
+    }
+
+    String nombres = usuario.getNombres() != null
+            ? usuario.getNombres() : "";
+
+    String apellidos = usuario.getApellidos() != null
+            ? usuario.getApellidos() : "";
+
     String nombreCompleto = nombres + " " + apellidos;
 %>
 
@@ -387,48 +406,48 @@
                 }
 
             }
-            
-             /* TARJETA DE COTIZACIONES */
-                .cotizaciones-card {
-                    background: linear-gradient(135deg, #e8f5e9, #ffffff);
-                    border: 1px solid #c8e6c9;
-                    border-radius: 15px;
-                    padding: 24px;
-                    margin-bottom: 20px;
-                }
 
-                .cotizaciones-card h3 {
-                    color: #2e7d32;
-                    font-size: 19px;
-                    margin: 0 0 12px;
-                }
+            /* TARJETA DE COTIZACIONES */
+            .cotizaciones-card {
+                background: linear-gradient(135deg, #e8f5e9, #ffffff);
+                border: 1px solid #c8e6c9;
+                border-radius: 15px;
+                padding: 24px;
+                margin-bottom: 20px;
+            }
 
-                .cotizaciones-card p {
-                    color: #546e5a;
-                    font-size: 13px;
-                    line-height: 1.7;
-                    margin-bottom: 18px;
-                }
+            .cotizaciones-card h3 {
+                color: #2e7d32;
+                font-size: 19px;
+                margin: 0 0 12px;
+            }
 
-                .btn-cotizaciones {
-                    display: block;
-                    width: 100%;
-                    padding: 13px;
-                    text-align: center;
-                    background: linear-gradient(135deg, #4CAF50, #388E3C);
-                    color: white;
-                    text-decoration: none;
-                    border-radius: 9px;
-                    font-size: 14px;
-                    font-weight: 600;
-                    transition: 0.3s;
-                }
+            .cotizaciones-card p {
+                color: #546e5a;
+                font-size: 13px;
+                line-height: 1.7;
+                margin-bottom: 18px;
+            }
 
-                .btn-cotizaciones:hover {
-                    background: #2e7d32;
-                    transform: translateY(-2px);
-                    box-shadow: 0 5px 15px rgba(56, 142, 60, 0.2);
-                }
+            .btn-cotizaciones {
+                display: block;
+                width: 100%;
+                padding: 13px;
+                text-align: center;
+                background: linear-gradient(135deg, #4CAF50, #388E3C);
+                color: white;
+                text-decoration: none;
+                border-radius: 9px;
+                font-size: 14px;
+                font-weight: 600;
+                transition: 0.3s;
+            }
+
+            .btn-cotizaciones:hover {
+                background: #2e7d32;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(56, 142, 60, 0.2);
+            }
         </style>
     </head>
 
@@ -444,11 +463,13 @@
                 </div>
             </div>
 
-            <form action="login.jsp" method="get">
+
+            <form action="${pageContext.request.contextPath}/logout" method="get">
                 <button type="submit" class="logout-btn">
                     ↪ Salir
                 </button>
             </form>
+
         </header>
 
         <main class="container">
