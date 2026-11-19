@@ -431,9 +431,9 @@
                 </section>
 
                 <div class="actions">
-                    <a href="${pageContext.request.contextPath}/adminDashboard"
+                    <a href="${pageContext.request.contextPath}/cotizaciones/lista"
                        class="btn btn-secondary">
-                        Volver al panel
+                        Volver a cotizaciones
                     </a>
 
                     <button type="submit"

@@ -117,12 +117,20 @@ public class CotizacionFacade {
                                 "La solicitud no existe.");
                     }
 
-                    if ("finalizada".equalsIgnoreCase(
-                            rs.getString("estado"))) {
+                    String estadoSolicitud = rs.getString("estado");
+
+                    if (!"pendiente".equalsIgnoreCase(estadoSolicitud)) {
+                        throw new SQLException(
+                                "Solo se pueden cotizar solicitudes pendientes.");
+                    }
+
+                    if (cotizacionDAO.tieneCotizacionBloqueante(
+                            dto.getIdSolicitud())) {
 
                         throw new SQLException(
-                                "No se puede cotizar una solicitud finalizada.");
+                                "La solicitud ya tiene una cotización activa o aprobada.");
                     }
+
                 }
             }
 
@@ -244,10 +252,15 @@ public class CotizacionFacade {
 
         return cotizacionDAO.tieneCotizacionAprobada(idSolicitud);
     }
-    
-    public List<Solicitud> listarSolicitudesParaCotizar()
-        throws SQLException {
 
-    return cotizacionDAO.listarSolicitudesParaCotizar();
-}
+    public List<Solicitud> listarSolicitudesParaCotizar()
+            throws SQLException {
+
+        return cotizacionDAO.listarSolicitudesParaCotizar();
+    }
+
+    public int procesarCotizacionesVencidas() throws SQLException {
+        return cotizacionDAO.procesarCotizacionesVencidas();
+    }
+
 }
