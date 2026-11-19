@@ -168,6 +168,11 @@
                 color: #b42332;
             }
 
+            .vencida {
+                background: #fff0d5;
+                color: #a3680a;
+            }
+
             .btn {
                 display: inline-block;
                 padding: 10px 15px;

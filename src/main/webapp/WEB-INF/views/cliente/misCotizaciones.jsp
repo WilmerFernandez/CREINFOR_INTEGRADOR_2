@@ -11,7 +11,9 @@
     <title>Mis cotizaciones - CREINFOR</title>
 
     <style>
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             margin: 0;
@@ -35,8 +37,15 @@
             gap: 15px;
         }
 
-        header h1 { margin: 0; font-size: 26px; }
-        header p { margin: 5px 0 0; font-size: 12px; }
+        header h1 {
+            margin: 0;
+            font-size: 26px;
+        }
+
+        header p {
+            margin: 5px 0 0;
+            font-size: 12px;
+        }
 
         .volver {
             color: white;
@@ -52,12 +61,14 @@
             padding: 0 20px;
         }
 
-        h2 { color: #173b50; }
+        h2 {
+            color: #173b50;
+        }
 
         .card {
             background: white;
             border-radius: 14px;
-            box-shadow: 0 5px 20px rgba(0,0,0,.06);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, .06);
             overflow: hidden;
             margin-bottom: 25px;
         }
@@ -70,8 +81,13 @@
             color: #173b50;
         }
 
-        .card-body { padding: 20px; }
-        .table-wrap { overflow-x: auto; }
+        .card-body {
+            padding: 20px;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
 
         table {
             width: 100%;
@@ -103,10 +119,29 @@
             color: #546579;
         }
 
-        .enviada { background: #e0efff; color: #1769aa; }
-        .aprobada { background: #e1f5e7; color: #207e46; }
-        .rechazada { background: #ffebee; color: #b42332; }
-        .borrador, .enviando, .error_envio {
+        .enviada {
+            background: #e0efff;
+            color: #1769aa;
+        }
+
+        .aprobada {
+            background: #e1f5e7;
+            color: #207e46;
+        }
+
+        .rechazada {
+            background: #ffebee;
+            color: #b42332;
+        }
+
+        .vencida {
+            background: #fff0d5;
+            color: #a3680a;
+        }
+
+        .borrador,
+        .enviando,
+        .error_envio {
             background: #edf0f4;
             color: #546579;
         }
@@ -122,9 +157,20 @@
             border: 0;
         }
 
-        .btn-blue { background: #4E90D6; color: white; }
-        .btn-green { background: #18814c; color: white; }
-        .btn-red { background: #bb3443; color: white; }
+        .btn-blue {
+            background: #4E90D6;
+            color: white;
+        }
+
+        .btn-green {
+            background: #18814c;
+            color: white;
+        }
+
+        .btn-red {
+            background: #bb3443;
+            color: white;
+        }
 
         .total {
             color: #147578;
@@ -157,8 +203,15 @@
             margin-bottom: 18px;
         }
 
-        .exito { background: #e1f5e7; color: #207e46; }
-        .error { background: #ffebee; color: #b42332; }
+        .exito {
+            background: #e1f5e7;
+            color: #207e46;
+        }
+
+        .error {
+            background: #ffebee;
+            color: #b42332;
+        }
 
         .acciones {
             display: flex;
@@ -167,9 +220,37 @@
             margin-top: 25px;
         }
 
-        @media(max-width:650px) {
-            .resumen { grid-template-columns: 1fr; }
-            .header-content { flex-wrap: wrap; }
+        .mensaje-vencida {
+            background: #fff8e8;
+            border: 1px solid #f2d396;
+            color: #805700;
+            padding: 18px;
+            border-radius: 9px;
+            margin-top: 20px;
+            line-height: 1.7;
+        }
+
+        .mensaje-vencida strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .estado-informativo {
+            background: #edf4fa;
+            color: #285674;
+            padding: 16px;
+            border-radius: 9px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 650px) {
+            .resumen {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                flex-wrap: wrap;
+            }
         }
     </style>
 </head>
@@ -191,8 +272,12 @@
 </header>
 
 <main>
+
     <h2>Mis cotizaciones</h2>
-    <p>Revisa y responde las propuestas económicas de tus solicitudes.</p>
+    <p>
+        Consulta tus propuestas económicas, revisa sus estados
+        y responde aquellas que se encuentren vigentes.
+    </p>
 
     <c:if test="${not empty sessionScope.mensajeCotizacion}">
         <div class="alerta exito">
@@ -209,12 +294,15 @@
     </c:if>
 
     <section class="card">
+
         <div class="card-title">
             Propuestas recibidas
         </div>
 
         <div class="card-body">
+
             <div class="table-wrap">
+
                 <table>
                     <thead>
                         <tr>
@@ -228,13 +316,19 @@
                     </thead>
 
                     <tbody>
+
                         <c:forEach var="cot" items="${cotizaciones}">
+
                             <c:if test="${cot.estado == 'enviada'
-                                      || cot.estado == 'aprobada'
-                                      || cot.estado == 'rechazada'}">
+                                       || cot.estado == 'aprobada'
+                                       || cot.estado == 'rechazada'
+                                       || cot.estado == 'vencida'}">
 
                                 <tr>
-                                    <td>#<c:out value="${cot.idCotizacion}"/></td>
+
+                                    <td>
+                                        #<c:out value="${cot.idCotizacion}"/>
+                                    </td>
 
                                     <td>
                                         #<c:out value="${cot.idSolicitud}"/>
@@ -264,24 +358,30 @@
                                             Ver propuesta
                                         </a>
                                     </td>
+
                                 </tr>
 
                             </c:if>
+
                         </c:forEach>
+
                     </tbody>
                 </table>
+
             </div>
 
             <c:if test="${empty cotizaciones}">
                 <p>No tienes cotizaciones registradas.</p>
             </c:if>
+
         </div>
     </section>
 
     <c:if test="${not empty seleccionada
-                   && (seleccionada.estado == 'enviada'
-                   || seleccionada.estado == 'aprobada'
-                   || seleccionada.estado == 'rechazada')}">
+                  && (seleccionada.estado == 'enviada'
+                  || seleccionada.estado == 'aprobada'
+                  || seleccionada.estado == 'rechazada'
+                  || seleccionada.estado == 'vencida')}">
 
         <section class="card" id="detalle">
 
@@ -292,6 +392,7 @@
             <div class="card-body">
 
                 <div class="resumen">
+
                     <div class="dato">
                         <small>Solicitud</small>
                         <strong>
@@ -308,13 +409,16 @@
 
                     <div class="dato">
                         <small>Estado</small>
+
                         <span class="badge ${seleccionada.estado}">
                             <c:out value="${seleccionada.estado}"/>
                         </span>
                     </div>
+
                 </div>
 
                 <div class="table-wrap">
+
                     <table>
                         <thead>
                             <tr>
@@ -326,10 +430,18 @@
                         </thead>
 
                         <tbody>
+
                             <c:forEach var="d" items="${detalles}">
+
                                 <tr>
-                                    <td><c:out value="${d.descripcion}"/></td>
-                                    <td><c:out value="${d.cantidad}"/></td>
+                                    <td>
+                                        <c:out value="${d.descripcion}"/>
+                                    </td>
+
+                                    <td>
+                                        <c:out value="${d.cantidad}"/>
+                                    </td>
+
                                     <td>
                                         S/
                                         <fmt:formatNumber
@@ -337,6 +449,7 @@
                                             minFractionDigits="2"
                                             maxFractionDigits="2"/>
                                     </td>
+
                                     <td>
                                         S/
                                         <fmt:formatNumber
@@ -345,13 +458,17 @@
                                             maxFractionDigits="2"/>
                                     </td>
                                 </tr>
+
                             </c:forEach>
+
                         </tbody>
                     </table>
+
                 </div>
 
                 <p style="text-align:right;margin-top:22px;">
                     Total cotizado:
+
                     <strong class="total">
                         S/
                         <fmt:formatNumber
@@ -362,17 +479,22 @@
                 </p>
 
                 <c:if test="${not empty seleccionada.observaciones}">
+
                     <div class="dato">
                         <small>Observaciones y condiciones</small>
-                        <p style="white-space:pre-wrap;"><c:out
-                            value="${seleccionada.observaciones}"/></p>
+
+                        <p style="white-space:pre-wrap;">
+                            <c:out value="${seleccionada.observaciones}"/>
+                        </p>
                     </div>
+
                 </c:if>
 
                 <c:choose>
+
                     <c:when test="${seleccionada.estado == 'enviada'
-                        && not empty seleccionada.fechaVencimiento
-                        && seleccionada.fechaVencimiento >= hoy}">
+                                 && not empty seleccionada.fechaVencimiento
+                                 && seleccionada.fechaVencimiento >= hoy}">
 
                         <div class="acciones">
 
@@ -380,75 +502,120 @@
                                   method="post"
                                   class="form-respuesta">
 
-                                <input type="hidden" name="idCotizacion"
+                                <input type="hidden"
+                                       name="idCotizacion"
                                        value="${seleccionada.idCotizacion}">
 
-                                <input type="hidden" name="respuesta"
+                                <input type="hidden"
+                                       name="respuesta"
                                        value="aprobada">
 
-                                <button type="submit" class="btn btn-green">
+                                <button type="submit"
+                                        class="btn btn-green">
                                     ✓ Aceptar cotización
                                 </button>
+
                             </form>
 
                             <form action="${pageContext.request.contextPath}/cotizaciones/mis"
                                   method="post"
                                   class="form-respuesta">
 
-                                <input type="hidden" name="idCotizacion"
+                                <input type="hidden"
+                                       name="idCotizacion"
                                        value="${seleccionada.idCotizacion}">
 
-                                <input type="hidden" name="respuesta"
+                                <input type="hidden"
+                                       name="respuesta"
                                        value="rechazada">
 
-                                <button type="submit" class="btn btn-red">
+                                <button type="submit"
+                                        class="btn btn-red">
                                     ✕ Rechazar cotización
                                 </button>
+
                             </form>
 
                         </div>
+
                     </c:when>
 
-                    <c:when test="${seleccionada.estado == 'enviada'}">
-                        <div class="alerta error" style="margin-top:20px;">
-                            Esta cotización ha vencido y ya no puede responderse.
+                    <c:when test="${seleccionada.estado == 'vencida'
+                                  || seleccionada.estado == 'enviada'}">
+
+                        <div class="mensaje-vencida">
+
+                            <strong>Esta cotización ha vencido.</strong>
+
+                            El plazo para aceptar o rechazar esta propuesta ha finalizado. 
+                            Por este motivo, tu solicitud fue cerrada automáticamente.
+
+                            <p>
+                                Si todavía necesitas el servicio, 
+                                puedes registrar una nueva solicitud.
+                            </p>
+
+                            <a class="btn btn-blue"
+                               href="${pageContext.request.contextPath}/clienteDashboard.jsp">
+                                Registrar nueva solicitud
+                            </a>
+
                         </div>
+
                     </c:when>
 
-                    <c:otherwise>
-                        <div class="alerta exito" style="margin-top:20px;">
-                            Tu respuesta a esta cotización ya fue registrada.
+                    <c:when test="${seleccionada.estado == 'aprobada'}">
+
+                        <div class="alerta exito"
+                             style="margin-top:20px;">
+                            Esta cotización fue aprobada correctamente.
                         </div>
-                    </c:otherwise>
+
+                    </c:when>
+
+                    <c:when test="${seleccionada.estado == 'rechazada'}">
+
+                        <div class="estado-informativo">
+                            Esta cotización fue rechazada.
+                            La decisión quedó registrada en el sistema.
+                        </div>
+
+                    </c:when>
+
                 </c:choose>
 
             </div>
+
         </section>
 
     </c:if>
+
 </main>
 
 <script>
-document.querySelectorAll(".form-respuesta").forEach(form => {
-    form.addEventListener("submit", function(event) {
-        const respuesta = form.querySelector(
-            'input[name="respuesta"]').value;
+    document.querySelectorAll(".form-respuesta").forEach(form => {
 
-        const pregunta = respuesta === "aprobada"
-            ? "¿Confirmas que aceptas esta cotización?"
-            : "¿Confirmas que rechazas esta cotización?";
+        form.addEventListener("submit", function(event) {
 
-        if (!confirm(pregunta)) {
-            event.preventDefault();
-            return;
-        }
+            const respuesta = form.querySelector(
+                    'input[name="respuesta"]').value;
 
-        document.querySelectorAll(".form-respuesta button")
-            .forEach(boton => {
-                boton.disabled = true;
-            });
+            const pregunta = respuesta === "aprobada"
+                    ? "¿Confirmas que aceptas esta cotización?"
+                    : "¿Confirmas que rechazas esta cotización?";
+
+            if (!confirm(pregunta)) {
+                event.preventDefault();
+                return;
+            }
+
+            document.querySelectorAll(".form-respuesta button")
+                    .forEach(boton => {
+                        boton.disabled = true;
+                    });
+        });
+
     });
-});
 </script>
 
 </body>
