@@ -30,82 +30,137 @@ public class ColaboradorDashboardServlet extends HttpServlet {
     }
 
     @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        
-// Interpretar correctamente las tildes y la ñ
+    protected void doPost(HttpServletRequest request,
+            HttpServletResponse response)
+            throws ServletException, IOException {
+
         request.setCharacterEncoding("UTF-8");
 
-        String idSolicitudParam = request.getParameter("idSolicitud");
-        if (idSolicitudParam != null && !idSolicitudParam.isEmpty()) {
-
-            registrarActividad(request, response);
-        } else {
-
-            processRequest(request, response);
-        }
-    }
-
-    private void processRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         HttpSession session = request.getSession(false);
-        if (session == null) {
-            response.sendRedirect("login.jsp");
+
+        if (session == null
+                || !(session.getAttribute("usuario") instanceof Usuario)) {
+
+            response.sendRedirect(request.getContextPath() + "/login.jsp");
             return;
         }
 
         Usuario usuario = (Usuario) session.getAttribute("usuario");
-        if (usuario == null || !"colaborador".equalsIgnoreCase(usuario.getTipoUsuario())) {
-            response.sendRedirect("login.jsp");
+
+        if (!"colaborador".equalsIgnoreCase(usuario.getTipoUsuario())) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
+            return;
+        }
+
+        String idSolicitudParam = request.getParameter("idSolicitud");
+
+        if (idSolicitudParam != null && !idSolicitudParam.isEmpty()) {
+            registrarActividad(request, response);
+        } else {
+            processRequest(request, response);
+        }
+    }
+
+    private void processRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setHeader("Cache-Control",
+                "no-store, no-cache, must-revalidate, max-age=0");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
+
+        HttpSession session = request.getSession(false);
+
+        if (session == null
+                || !(session.getAttribute("usuario") instanceof Usuario)) {
+
+            response.sendRedirect(request.getContextPath() + "/login.jsp");
+            return;
+        }
+
+        Usuario usuario = (Usuario) session.getAttribute("usuario");
+
+        if (!"colaborador".equalsIgnoreCase(usuario.getTipoUsuario())) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
         List<Solicitud> solicitudes = new ArrayList<>();
-        String rolColaborador = "Colaborador"; // Valor por defecto
+        String rolColaborador = "Colaborador";
         int idColaboradorLogeado = -1;
 
         try (Connection connection = BDConnection.getConnection()) {
+
             ColaboradorDAO colaboradorDAO = new ColaboradorDAO(connection);
             SolicitudDAO solicitudDAO = new SolicitudDAO(connection);
-            InformeTecnicoDAO informeDAO
-                    = new InformeTecnicoDAO(connection);
+            InformeTecnicoDAO informeDAO = new InformeTecnicoDAO(connection);
 
-            idColaboradorLogeado = colaboradorDAO.obtenerIdColaboradorPorEmail(usuario.getEmail());
+            idColaboradorLogeado
+                    = colaboradorDAO.obtenerIdColaboradorPorEmail(usuario.getEmail());
+
             if (idColaboradorLogeado == -1) {
 
-                request.setAttribute("mensajeError", "Error: Colaborador no encontrado para el usuario actual.");
+                request.setAttribute(
+                        "mensajeError",
+                        "Error: Colaborador no encontrado para el usuario actual."
+                );
 
             } else {
+
                 request.setAttribute("idColaboradorLogeado", idColaboradorLogeado);
 
-                // Obtener y pasar el rol específico del colaborador
-                rolColaborador = colaboradorDAO.obtenerRolColaborador(idColaboradorLogeado);
+                rolColaborador
+                        = colaboradorDAO.obtenerRolColaborador(idColaboradorLogeado);
+
                 request.setAttribute("rolColaborador", rolColaborador);
 
-                SolicitudFacade solicitudFacade = new SolicitudFacade(connection);
-                solicitudes = solicitudFacade.obtenerSolicitudesPorColaborador(idColaboradorLogeado);
+                SolicitudFacade solicitudFacade
+                        = new SolicitudFacade(connection);
 
-                // Para cada solicitud, verificar si el colaborador logeado es coordinador de esa solicitud
+                solicitudes
+                        = solicitudFacade.obtenerSolicitudesPorColaborador(idColaboradorLogeado);
+
                 for (Solicitud s : solicitudes) {
+
                     int idSolicitud = s.getIdSolicitud();
 
-                    boolean esCoordinador = solicitudDAO.esColaboradorCoordinadorDeSolicitud(idSolicitud, idColaboradorLogeado);
-                    request.setAttribute("esCoordinador_" + idSolicitud, esCoordinador);
+                    boolean esCoordinador
+                            = solicitudDAO.esColaboradorCoordinadorDeSolicitud(
+                                    idSolicitud,
+                                    idColaboradorLogeado
+                            );
 
-                    // Consultar estado del informe técnico
-                    String estadoInforme = informeDAO.obtenerEstadoEnvio(idSolicitud);
-                    request.setAttribute("estadoInforme_" + idSolicitud, estadoInforme);
+                    request.setAttribute(
+                            "esCoordinador_" + idSolicitud,
+                            esCoordinador
+                    );
+
+                    String estadoInforme
+                            = informeDAO.obtenerEstadoEnvio(idSolicitud);
+
+                    request.setAttribute(
+                            "estadoInforme_" + idSolicitud,
+                            estadoInforme
+                    );
                 }
             }
 
-            request.setAttribute("solicitudes", solicitudes);
-
         } catch (Exception e) {
-            e.printStackTrace();
-            request.setAttribute("mensajeError", "Error al cargar el dashboard: " + e.getMessage());
 
-        } finally {
+            getServletContext().log(
+                    "Error al cargar el dashboard del colaborador", e);
 
-            request.getRequestDispatcher("colaboradorDashboard.jsp").forward(request, response);
+            request.setAttribute(
+                    "mensajeError",
+                    "No se pudo cargar la información del colaborador."
+            );
+
         }
+
+        request.setAttribute("solicitudes", solicitudes);
+
+        request.getRequestDispatcher("/colaboradorDashboard.jsp")
+                .forward(request, response);
     }
 
     private void registrarActividad(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {

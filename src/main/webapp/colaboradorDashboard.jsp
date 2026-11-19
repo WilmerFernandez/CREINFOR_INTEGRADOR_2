@@ -3,15 +3,29 @@
 <%@ page import="java.util.ArrayList" %>
 <%@ page import="utp_integrador_2_model.Usuario" %>
 <%@ page import="utp_integrador_2_model.Solicitud" %>
-<%@ page session="true" %>
+<%@ page session="false" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 
-<%
-    Usuario usuario = (Usuario) session.getAttribute("usuario");
 
-    if (usuario == null
-            || !"colaborador".equalsIgnoreCase(usuario.getTipoUsuario())) {
+<%
+    response.setHeader("Cache-Control",
+            "no-store, no-cache, must-revalidate, max-age=0");
+    response.setHeader("Pragma", "no-cache");
+    response.setDateHeader("Expires", 0);
+
+    javax.servlet.http.HttpSession sesion = request.getSession(false);
+
+    if (sesion == null
+            || !(sesion.getAttribute("usuario") instanceof Usuario)) {
+
         response.sendRedirect(request.getContextPath() + "/login.jsp");
+        return;
+    }
+
+    Usuario usuario = (Usuario) sesion.getAttribute("usuario");
+
+    if (!"colaborador".equalsIgnoreCase(usuario.getTipoUsuario())) {
+        response.sendError(403);
         return;
     }
 
@@ -47,15 +61,19 @@
     int finalizadas = 0;
 
     for (Solicitud s : solicitudes) {
+
         if ("pendiente".equalsIgnoreCase(s.getEstado())) {
             pendientes++;
+
         } else if ("en proceso".equalsIgnoreCase(s.getEstado())) {
             enProceso++;
+
         } else if ("finalizada".equalsIgnoreCase(s.getEstado())) {
             finalizadas++;
         }
     }
 %>
+
 
 <!DOCTYPE html>
 <html lang="es">
@@ -604,7 +622,7 @@
                     </p>
                 </div>
 
-                <a href="${pageContext.request.contextPath}/login.jsp"
+                <a href="${pageContext.request.contextPath}/logout"
                    class="header-logout">
                     Salir
                 </a>
@@ -615,11 +633,13 @@
 
             <!-- BIENVENIDA -->
             <div class="welcome">
+
                 <h2>
                     Bienvenido,
-                    <c:out value="${sessionScope.usuario.nombres}"/>
-                    <c:out value="${sessionScope.usuario.apellidos}"/>
+                    <c:out value="<%= usuario.getNombres()%>"/>
+                    <c:out value="<%= usuario.getApellidos()%>"/>
                 </h2>
+
 
                 <p>
                     Especialidad:

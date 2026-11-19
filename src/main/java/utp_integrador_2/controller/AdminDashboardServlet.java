@@ -1,3 +1,4 @@
+
 package utp_integrador_2.controller;
 
 import javax.servlet.ServletException;
@@ -12,35 +13,44 @@ import utp_integrador_2_model.Usuario;
 
 @WebServlet("/adminDashboard")
 public class AdminDashboardServlet extends HttpServlet {
+
     @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doGet(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+
+        response.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+        response.setHeader("Pragma", "no-cache");
+        response.setDateHeader("Expires", 0);
 
         HttpSession session = request.getSession(false);
-        if (session == null || session.getAttribute("usuario") == null) {
-            response.sendRedirect("login.jsp");
+
+        if (session == null || !(session.getAttribute("usuario") instanceof Usuario)) {
+            response.sendRedirect(request.getContextPath() + "/login.jsp");
             return;
         }
 
         Usuario usuario = (Usuario) session.getAttribute("usuario");
+
         if (!"admin".equalsIgnoreCase(usuario.getTipoUsuario())) {
-            response.sendRedirect("login.jsp");
+            response.sendError(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
 
         try (Connection connection = BDConnection.getConnection()) {
+
             EstadisticaFacade estadisticaFacade = new EstadisticaFacade(connection);
 
-            // Obtener conteo de solicitudes por estado
-            Map<String, Integer> solicitudesPorEstado = estadisticaFacade.obtenerConteoSolicitudesPorEstado();
+            Map<String, Integer> solicitudesPorEstado =
+                    estadisticaFacade.obtenerConteoSolicitudesPorEstado();
 
             request.setAttribute("solicitudesPorEstado", solicitudesPorEstado);
 
-           
+            request.getRequestDispatcher("/adminDashboard.jsp")
+                    .forward(request, response);
 
-            request.getRequestDispatcher("adminDashboard.jsp").forward(request, response);
         } catch (Exception e) {
-            e.printStackTrace();
-            response.sendRedirect("error.jsp");
+            getServletContext().log("Error en dashboard administrativo", e);
+            response.sendRedirect(request.getContextPath() + "/error.jsp");
         }
     }
 }
